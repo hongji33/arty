@@ -1014,30 +1014,49 @@ function lsCopyPrompt(){
   if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(p).then(()=>done(true)).catch(()=>{ box.select(); done(false); }); }
   else { box.select(); try{ document.execCommand('copy'); done(true); }catch(e){ done(false); } }
 }
+function lsToArr(v){ if(Array.isArray(v))return v; if(v==null)return []; return (''+v).split('\n').map(s=>s.trim()).filter(Boolean); }
+function lsField(o){ return function(){ for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(o[k]!=null && o[k]!=='') return o[k]; } return undefined; }; }
+function lsNormalize(o){ /* 여러 형식(영어·한국어 키)의 수업 하나를 표준 형식으로 */
+  if(!o||typeof o!=='object')return null;
+  const g=lsField(o);
+  const rawTitle=g('title','제목','수업제목','수업 제목','name','subject');
+  if(rawTitle==null||!(''+rawTitle).trim())return null;
+  let rawSec=g('sections','섹션','설명','설명섹션','설명 섹션','내용','본문'); if(!Array.isArray(rawSec))rawSec=[];
+  const sections=rawSec.map(x=>{ if(typeof x==='string')return {h:'',body:x}; if(x&&typeof x==='object'){ const gg=lsField(x); return {h:(gg('h','소제목','제목','title','head')||'')+'', body:(gg('body','내용','본문','text','content')||'')+''}; } return null; }).filter(x=>x&&(x.h||x.body));
+  let act=g('activity','활동','오늘의활동','오늘의 활동'); let activity={title:'',desc:''};
+  if(act&&typeof act==='object'){ const ga=lsField(act); activity={title:(ga('title','제목','name')||'')+'', desc:(ga('desc','설명','내용','description')||'')+''}; }
+  else if(typeof act==='string') activity={title:'',desc:act};
+  let rawQuiz=g('quiz','퀴즈','문제'); if(!Array.isArray(rawQuiz))rawQuiz=[];
+  const quiz=rawQuiz.map(q=>{ if(!q||typeof q!=='object')return null; const gq=lsField(q); const opts=gq('opts','보기','선택지','options')||[]; const ansv=gq('ans','정답','answer'); return {q:(gq('q','question','문제')||'')+'', opts:Array.isArray(opts)?opts:[], ans:(parseInt(ansv)||0)}; }).filter(x=>x&&x.q);
+  return { id:'l'+Date.now()+Math.floor(Math.random()*10000),
+    unit:(g('unit','단원','주제')||'')+'', title:(''+rawTitle).trim(), intro:(g('intro','소개','도입','설명글')||'')+'',
+    goals:lsToArr(g('goals','학습목표','목표')), sections:sections, activity:activity,
+    easy:(g('easy','쉬운설명','쉬운 설명','쉽게')||'')+'', think:lsToArr(g('think','생각','생각질문','생각해보기')), viewing:lsToArr(g('viewing','감상질문','감상','작품감상')), quiz:quiz };
+}
+function lsCollectRaw(obj){ /* 다양한 모양에서 수업 객체 배열 뽑기 */
+  if(Array.isArray(obj))return obj;
+  if(obj&&typeof obj==='object'){
+    const src=obj.lessons||obj.수업;
+    if(src){ if(Array.isArray(src))return src; if(typeof src==='object'){ let all=[]; ['중1','중2','중3'].forEach(k=>{ if(Array.isArray(src[k]))all=all.concat(src[k]); }); if(all.length)return all; } }
+    return [obj];
+  }
+  return [];
+}
 function lsImportJson(){
   const raw=(document.getElementById('aiImportIn').value||'').trim(); const m=document.getElementById('aiImportMsg');
   const fail=t=>{ m.style.color='#c92a2a'; m.textContent=t; };
-  const ok=t=>{ m.style.color='#2b8a3e'; m.textContent=t; setTimeout(()=>m.textContent='',5000); };
+  const ok=t=>{ m.style.color='#2b8a3e'; m.textContent=t; setTimeout(()=>m.textContent='',6000); };
   if(!raw){ fail('먼저 JSON을 붙여넣어 주세요.'); return; }
   let txt=raw.replace(/```[a-zA-Z]*/g,'').replace(/```/g,'').trim();
-  const s=txt.indexOf('{'), e=txt.lastIndexOf('}');
-  if(s<0||e<0){ fail('JSON을 찾지 못했어요. AI 답변의 { … } 부분을 통째로 붙여넣어 주세요.'); return; }
-  let obj; try{ obj=JSON.parse(txt.slice(s,e+1)); }catch(err){ fail('JSON 형식이 올바르지 않아요. AI에게 "JSON만 다시 출력해줘"라고 요청해 보세요.'); return; }
-  const arr=Array.isArray(obj)?obj:(Array.isArray(obj.lessons)?obj.lessons:[obj]);
-  const grade=document.getElementById('aiGrade').value; let added=0;
-  arr.forEach(o=>{ if(!o||!o.title)return;
-    const lesson={ id:'l'+Date.now()+Math.floor(Math.random()*1000),
-      unit:o.unit||'', title:o.title, intro:o.intro||'',
-      goals:Array.isArray(o.goals)?o.goals:[],
-      sections:Array.isArray(o.sections)?o.sections.filter(x=>x&&(x.h||x.body)).map(x=>({h:x.h||'',body:x.body||''})):[],
-      activity:(o.activity&&typeof o.activity==='object')?{title:o.activity.title||'',desc:o.activity.desc||''}:{title:'',desc:''},
-      easy:o.easy||'', think:Array.isArray(o.think)?o.think:[], viewing:Array.isArray(o.viewing)?o.viewing:[],
-      quiz:Array.isArray(o.quiz)?o.quiz.filter(q=>q&&q.q).map(q=>({q:q.q,opts:Array.isArray(q.opts)?q.opts:[],ans:+q.ans||0})):[] };
-    LSDATA[grade].push(lesson); added++;
-  });
-  if(!added){ fail('추가할 수업을 찾지 못했어요. (제목이 있는 JSON인지 확인해 주세요.)'); return; }
+  const a=txt.indexOf('{'), aBr=txt.indexOf('['); let start=(aBr>=0&&(a<0||aBr<a))?aBr:a;
+  const b=txt.lastIndexOf('}'), bBr=txt.lastIndexOf(']'); let end=Math.max(b,bBr);
+  if(start<0||end<0){ fail('JSON을 찾지 못했어요. AI 답변의 { … } 부분을 통째로 붙여넣어 주세요.'); return; }
+  let obj; try{ obj=JSON.parse(txt.slice(start,end+1)); }catch(err){ fail('JSON 형식이 올바르지 않아요. AI에게 "설명 없이 JSON만 다시 출력해줘"라고 요청해 보세요.'); return; }
+  const rawArr=lsCollectRaw(obj); const grade=document.getElementById('aiGrade').value; let added=0, skipped=0;
+  rawArr.forEach(o=>{ const l=lsNormalize(o); if(l){ LSDATA[grade].push(l); added++; } else skipped++; });
+  if(!added){ fail('추가할 수업을 찾지 못했어요. 제목(title/제목)이 있는 JSON인지 확인하거나, AI에게 형식을 다시 지켜 달라고 해보세요.'); return; }
   lsSaveLs(); document.getElementById('aiImportIn').value=''; document.getElementById('lsGrade').value=grade; lsRenderList();
-  ok(grade+'에 수업 '+added+'개를 추가했어요! 목록에서 확인하고, 다 됐으면 ② lessons.json 내보내기 하세요.');
+  ok(grade+'에 수업 '+added+'개를 추가했어요'+(skipped?(' (제목 없는 '+skipped+'개는 건너뜀)'):'')+'! 목록에서 확인하고, 다 됐으면 ② lessons.json 내보내기 하세요.');
 }
 function lsRenderList(){ const g=lsGrade(); const arr=LSDATA[g]||[]; const box=document.getElementById('lsList');
   if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">'+g+' 수업이 아직 없어요. ＋ 새 수업으로 만들어 주세요. (처음이면 먼저 ① 불러오기를 눌러 현재 수업을 가져오세요.)</p>'; return; }
@@ -1088,7 +1107,9 @@ function lsFormSave(){ if(!LSEDIT.title.trim()){ alert('제목을 입력해 주�
 function lsPull(){ const base=(siteUrl('funart')||'').replace(/\/?$/,'/'); lsMsg('funart에서 불러오는 중...');
   fetch(base+'lessons.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.lessons||d; let n=0; LS_GRADES.forEach(g=>{ if(Array.isArray(src[g])){ LSDATA[g]=src[g]; n+=src[g].length; } }); lsSaveLs(); lsRenderList(); lsMsg('현재 funart 사이트 수업 '+n+'개를 불러왔어요.'); })
   .catch(()=>lsMsg('불러오지 못했어요. 아직 lessons.json이 funart 저장소에 없을 수 있어요. 그럴 땐 새 수업부터 만들면 돼요. (사이트 주소는 설정에서 바꿀 수 있어요.)')); }
-function lsExport(){ dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요. 이 파일을 funart 저장소에 그대로 올리면 funart 학생 화면에 반영돼요.'); }
+function lsExport(){ const total=LS_GRADES.reduce((n,g)=>n+((LSDATA[g]||[]).length),0);
+  if(total===0){ if(!confirm('지금 수업이 0개예요. 이 파일을 funart에 올리면 funart의 기존 수업이 모두 사라져요. 그래도 내보낼까요?\n\n(먼저 ① 불러오기로 기존 수업을 가져오거나, 수업을 추가한 뒤 내보내는 걸 권해요.)')) { lsMsg('내보내기를 취소했어요.'); return; } }
+  dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요(수업 '+total+'개). 이 파일을 funart 저장소에 그대로 올리면 funart 학생 화면에 반영돼요.'); }
 
 /* ================= 화가 편집기 ================= */
 let ATDATA=null, ATEDIT=null, ATIDX=-1;
