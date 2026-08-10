@@ -388,17 +388,19 @@
       <!-- 수업 편집기 -->
       <section class="page" id="page-lesson">
         <h2 class="title">📚 수업 편집기</h2>
-        <p class="lead">학생 사이트 「수업 바로가기」에 보일 수업을 직접 만들고 고쳐요. 다 만든 뒤 <b>lessons.json 내보내기</b>로 파일을 받아 <b>artclass 저장소</b>에 올리면 모든 학생 화면에 반영돼요.</p>
+        <p class="lead">「수업 바로가기」에 보일 수업을 직접 만들고 고쳐요. 수업 바로가기는 <b>funart 사이트</b>에만 있어요.</p>
+        <div class="card tgt-bar" id="tgtLesson"></div>
         <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
           <b>📌 사용 순서</b>
           <ol style="margin:8px 0 0; padding-left:20px; line-height:1.9; font-size:14px;">
-            <li><b>① 불러오기</b>로 현재 학생 사이트의 수업을 가져와요(처음 한 번).</li>
+            <li><b>① 불러오기</b>로 현재 funart 사이트의 수업을 가져와요(처음 한 번).</li>
             <li>학년을 고르고 <b>＋ 새 수업</b>을 만들거나, 목록에서 <b>수정</b>을 눌러 고쳐요.</li>
             <li><b>② lessons.json 내보내기</b>로 파일을 받아요.</li>
-            <li>그 파일을 <b>artclass 저장소</b>(학생 사이트)에 올리면 끝!</li>
+            <li>그 파일을 <b>funart 저장소</b>에 올리면 끝!</li>
           </ol>
         </div>
-        <div class="card">
+        <div id="lsGuard"></div>
+        <div class="card" id="lsControls">
           <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
             <label class="lbl" style="margin:0;">학년</label>
             <select id="lsGrade" class="in" style="width:auto; min-width:90px;" onchange="lsRenderList()">
@@ -417,9 +419,10 @@
       <!-- 화가 편집기 -->
       <section class="page" id="page-artistedit">
         <h2 class="title">🖼️ 화가 편집기</h2>
-        <p class="lead">학생 사이트 「추천 화가·디자이너」에 보일 인물을 추가·수정해요. <b>artists.json 내보내기</b>로 파일을 받아 <b>artclass 저장소</b>에 올리면 학생 화면에 반영돼요.</p>
+        <p class="lead">「추천 화가·디자이너」에 보일 인물을 추가·수정해요. 이 메뉴는 <b>artclass·funart 두 사이트 모두</b> 관리할 수 있어요. 아래에서 대상 사이트를 고르세요.</p>
+        <div class="card tgt-bar" id="tgtArtist"></div>
         <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
-          <b>📌 사용 순서</b>: ① 불러오기 → 분류 고르고 ＋ 새 화가 / 수정 → ② artists.json 내보내기 → artclass 저장소에 올리기
+          <b>📌 사용 순서</b>: 대상 사이트 선택 → ① 불러오기 → 분류 고르고 ＋ 새 화가 / 수정 → ② artists.json 내보내기 → 해당 저장소에 올리기
         </div>
         <div class="card">
           <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
@@ -486,9 +489,12 @@
           <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveMyClassesFromSettings()">저장</button><span id="setClsMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
         </div>
         <div class="card">
-          <h3>🎨 학생 앱 주소</h3>
-          <p style="font-size:13.5px;color:var(--muted);">사이드바의 '학생 화면으로 가기' 버튼이 열 주소예요. 학생용 앱(즐거운 미술시간)의 인터넷 주소를 넣어주세요. (GitHub Pages 주소 등)</p>
-          <input id="setStudentUrl" class="in" style="width:100%;" placeholder="https://아이디.github.io/artclass/">
+          <h3>🎨 학생 사이트 주소</h3>
+          <p style="font-size:13.5px;color:var(--muted);">두 학생 사이트의 인터넷 주소예요. 편집기의 '불러오기·미리보기'와 사이드바 '학생 화면으로 가기'가 이 주소를 사용해요. (GitHub Pages 주소)</p>
+          <label class="lbl">📚 funart (내 수업 사이트)</label>
+          <input id="setUrlFunart" class="in" style="width:100%;" placeholder="https://아이디.github.io/funart/">
+          <label class="lbl">🎨 artclass (공용 사이트)</label>
+          <input id="setUrlArtclass" class="in" style="width:100%;" placeholder="https://아이디.github.io/artclass/">
           <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveStudentUrl()">저장</button><span id="stuMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
         </div>
         <div class="card">
@@ -767,10 +773,23 @@ document.getElementById('groupCount').addEventListener('input',function(e){ cur(
 ['A','B','C','D'].forEach(function(r){ document.getElementById('role'+r).addEventListener('input',function(){ SEAT.roles[r]=this.value; seatSave(); seatRenderGrid(); }); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape' && document.getElementById('page-seat').classList.contains('board')) seatBoardMode(false); });
 
-/* ================= 학생 앱 이동 ================= */
-function studentUrl(){ return lsGet('tbook_studenturl','https://hongji33.github.io/artclass/'); }
-function goStudent(){ const u=studentUrl(); if(!u){ alert('설정에서 학생 앱 주소를 먼저 넣어주세요.'); go('settings',navBtn('settings')); return; } window.open(u,'_blank'); }
-function saveStudentUrl(){ lsSet('tbook_studenturl',(document.getElementById('setStudentUrl').value||'').trim()); const m=document.getElementById('stuMsg'); m.textContent='저장했어요.'; setTimeout(()=>m.textContent='',2000); }
+/* ================= 관리 대상 사이트 (artclass / funart) ================= */
+const SITES={
+  funart:{ label:'📚 funart (내 수업)', short:'funart', urlKey:'tbook_url_funart', urlDef:'https://hongji33.github.io/funart/', lessons:true },
+  artclass:{ label:'🎨 artclass (공용)', short:'artclass', urlKey:'tbook_url_artclass', urlDef:'https://hongji33.github.io/artclass/', lessons:false }
+};
+function getTarget(){ const t=lsGet('tbook_target','funart'); return SITES[t]?t:'funart'; }
+function siteUrl(t){ t=t||getTarget(); return lsGet(SITES[t].urlKey, SITES[t].urlDef); }
+function studentUrl(){ return siteUrl(getTarget()); } /* 호환용 */
+function setTarget(t){ if(!SITES[t])return; lsSet('tbook_target',t); atLoad(); lsLoad(); tgRender(); if(document.getElementById('page-lesson').classList.contains('show')) lsShow(); if(document.getElementById('page-artistedit').classList.contains('show')) atShow(); }
+function tgBar(id){ const t=getTarget();
+  return '<div class="row" style="align-items:center; gap:8px; flex-wrap:wrap;"><b style="margin-right:2px;">관리 대상:</b>'
+    +Object.keys(SITES).map(k=>'<button class="seg'+(k===t?' sel':'')+'" onclick="setTarget(\''+k+'\')">'+SITES[k].label+'</button>').join('')
+    +'<span style="margin-left:auto; color:var(--muted); font-size:12.5px;">'+esc(siteUrl(t))+'</span></div>';
+}
+function tgRender(){ const t=getTarget(); const a=document.getElementById('tgtLesson'); const b=document.getElementById('tgtArtist'); if(a)a.innerHTML=tgBar('tgtLesson'); if(b)b.innerHTML=tgBar('tgtArtist'); }
+function goStudent(){ const u=siteUrl(getTarget()); if(!u){ alert('설정에서 학생 사이트 주소를 먼저 넣어주세요.'); go('settings',navBtn('settings')); return; } window.open(u,'_blank'); }
+function saveStudentUrl(){ lsSet(SITES.funart.urlKey,(document.getElementById('setUrlFunart').value||'').trim()||SITES.funart.urlDef); lsSet(SITES.artclass.urlKey,(document.getElementById('setUrlArtclass').value||'').trim()||SITES.artclass.urlDef); const m=document.getElementById('stuMsg'); m.textContent='저장했어요.'; setTimeout(()=>m.textContent='',2000); tgRender(); }
 
 /* ================= 담당 반(공용) ================= */
 function getMyClasses(){ return lsGet('tbook_classes',[]); }
@@ -831,7 +850,9 @@ function planPrint(){ window.print(); }
 /* ================= 부팅 ================= */
 function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); matRender(); clRender(); memoInit(); timerShow(); scLoad(); ckLoad(); lsLoad(); atLoad();
   const my=getMyClasses(); const s=document.getElementById('setCls'); if(s) s.value=my.join('\n');
-  const su=document.getElementById('setStudentUrl'); if(su) su.value=studentUrl();
+  const uf=document.getElementById('setUrlFunart'); if(uf) uf.value=siteUrl('funart');
+  const ua=document.getElementById('setUrlArtclass'); if(ua) ua.value=siteUrl('artclass');
+  tgRender();
   if(!my.length) document.getElementById('onboard').style.display='flex';
 }
 
@@ -894,11 +915,17 @@ function ckPrint(){ const cls=document.getElementById('ckClass').value; if(!cls)
 /* ================= 수업 편집기 ================= */
 let LSDATA=null, LSEDIT=null, LSIDX=-1;
 const LS_GRADES=['중1','중2','중3'];
-function lsLoad(){ LSDATA=lsGet('tbook_lessons',null)||{'중1':[],'중2':[],'중3':[]}; LS_GRADES.forEach(g=>{ if(!Array.isArray(LSDATA[g]))LSDATA[g]=[]; }); }
-function lsSaveLs(){ lsSet('tbook_lessons',LSDATA); }
+function lsLoad(){ LSDATA=lsGet('tbook_lessons_funart',null)||lsGet('tbook_lessons',null)||{'중1':[],'중2':[],'중3':[]}; LS_GRADES.forEach(g=>{ if(!Array.isArray(LSDATA[g]))LSDATA[g]=[]; }); }
+function lsSaveLs(){ lsSet('tbook_lessons_funart',LSDATA); }
 function lsGrade(){ return document.getElementById('lsGrade').value; }
 function lsMsg(t){ const m=document.getElementById('lsMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
-function lsShow(){ if(!LSDATA)lsLoad(); lsRenderList(); }
+function lsShow(){ if(!LSDATA)lsLoad(); tgRender();
+  const isArt=(getTarget()==='artclass');
+  const guard=document.getElementById('lsGuard'); const ctrl=document.getElementById('lsControls'); const list=document.getElementById('lsList'); const form=document.getElementById('lsForm');
+  if(isArt){ guard.innerHTML='<div class="card" style="background:#fff4f4; border-color:#ffd0d0;">🎨 <b>artclass(공용)</b> 사이트에는 「수업 바로가기」가 없어요. 수업은 <b>📚 funart</b>에서만 편집할 수 있어요. 위에서 <b>funart</b>를 선택하거나, 화가 편집기를 이용해 주세요.</div>';
+    ctrl.style.display='none'; list.style.display='none'; form.style.display='none'; return; }
+  guard.innerHTML=''; ctrl.style.display=''; list.style.display=''; lsRenderList();
+}
 function lsRenderList(){ const g=lsGrade(); const arr=LSDATA[g]||[]; const box=document.getElementById('lsList');
   if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">'+g+' 수업이 아직 없어요. ＋ 새 수업으로 만들어 주세요. (처음이면 먼저 ① 불러오기를 눌러 현재 수업을 가져오세요.)</p>'; return; }
   box.innerHTML=arr.map((l,i)=>'<div class="row" style="align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:10px 0;">'
@@ -945,19 +972,20 @@ function lsFormSave(){ if(!LSEDIT.title.trim()){ alert('제목을 입력해 주�
   const g=lsGrade(); if(LSIDX<0) LSDATA[g].push(LSEDIT); else LSDATA[g][LSIDX]=LSEDIT;
   lsSaveLs(); document.getElementById('lsForm').style.display='none'; LSEDIT=null; lsRenderList(); lsMsg('저장했어요. 다 됐으면 ② lessons.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
 }
-function lsPull(){ const base=(studentUrl()||'').replace(/\/?$/,'/'); lsMsg('불러오는 중...');
-  fetch(base+'lessons.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.lessons||d; let n=0; LS_GRADES.forEach(g=>{ if(Array.isArray(src[g])){ LSDATA[g]=src[g]; n+=src[g].length; } }); lsSaveLs(); lsRenderList(); lsMsg('현재 학생 사이트 수업 '+n+'개를 불러왔어요.'); })
-  .catch(()=>lsMsg('불러오지 못했어요. 아직 lessons.json이 학생 저장소에 없을 수 있어요. 그럴 땐 새 수업부터 만들면 돼요. (학생 사이트 주소는 설정에서 바꿀 수 있어요.)')); }
-function lsExport(){ dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요. 이 파일을 artclass 저장소(학생 사이트)에 그대로 올리면 학생 화면에 반영돼요.'); }
+function lsPull(){ const base=(siteUrl('funart')||'').replace(/\/?$/,'/'); lsMsg('funart에서 불러오는 중...');
+  fetch(base+'lessons.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.lessons||d; let n=0; LS_GRADES.forEach(g=>{ if(Array.isArray(src[g])){ LSDATA[g]=src[g]; n+=src[g].length; } }); lsSaveLs(); lsRenderList(); lsMsg('현재 funart 사이트 수업 '+n+'개를 불러왔어요.'); })
+  .catch(()=>lsMsg('불러오지 못했어요. 아직 lessons.json이 funart 저장소에 없을 수 있어요. 그럴 땐 새 수업부터 만들면 돼요. (사이트 주소는 설정에서 바꿀 수 있어요.)')); }
+function lsExport(){ dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요. 이 파일을 funart 저장소에 그대로 올리면 funart 학생 화면에 반영돼요.'); }
 
 /* ================= 화가 편집기 ================= */
 let ATDATA=null, ATEDIT=null, ATIDX=-1;
 const AT_CATS=['world','korea','design'];
-function atLoad(){ ATDATA=lsGet('tbook_artists',null)||{world:[],korea:[],design:[]}; AT_CATS.forEach(c=>{ if(!Array.isArray(ATDATA[c]))ATDATA[c]=[]; }); }
-function atSaveLs(){ lsSet('tbook_artists',ATDATA); }
+function atKey(){ return 'tbook_artists_'+getTarget(); }
+function atLoad(){ ATDATA=lsGet(atKey(),null)||(getTarget()==='funart'?lsGet('tbook_artists',null):null)||{world:[],korea:[],design:[]}; AT_CATS.forEach(c=>{ if(!Array.isArray(ATDATA[c]))ATDATA[c]=[]; }); }
+function atSaveLs(){ lsSet(atKey(),ATDATA); }
 function atCat(){ return document.getElementById('atCat').value; }
 function atMsg(t){ const m=document.getElementById('atMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
-function atShow(){ if(!ATDATA)atLoad(); atRenderList(); }
+function atShow(){ tgRender(); atLoad(); atRenderList(); }
 function atRenderList(){ const c=atCat(); const arr=ATDATA[c]||[]; const box=document.getElementById('atList');
   if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">이 분류에 인물이 아직 없어요. ＋ 새 화가로 추가하거나 먼저 ① 불러오기를 눌러 주세요.</p>'; return; }
   box.innerHTML=arr.map((a,i)=>'<div class="row" style="align-items:center; gap:10px; border-bottom:1px solid var(--line); padding:10px 0;">'
@@ -987,10 +1015,10 @@ function atFormSave(){ if(!ATEDIT.name.trim()){ alert('이름을 입력해 주�
   const c=atCat(); if(ATIDX<0) ATDATA[c].push(ATEDIT); else ATDATA[c][ATIDX]=ATEDIT;
   atSaveLs(); document.getElementById('atForm').style.display='none'; ATEDIT=null; atRenderList(); atMsg('저장했어요. 다 됐으면 ② artists.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
 }
-function atPull(){ const base=(studentUrl()||'').replace(/\/?$/,'/'); atMsg('불러오는 중...');
-  fetch(base+'artists.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.artists||d; let n=0; AT_CATS.forEach(c=>{ if(Array.isArray(src[c])){ ATDATA[c]=src[c]; n+=src[c].length; } }); atSaveLs(); atRenderList(); atMsg('현재 학생 사이트 화가 '+n+'명을 불러왔어요.'); })
-  .catch(()=>atMsg('불러오지 못했어요. 아직 artists.json이 학생 저장소에 없을 수 있어요. 그럴 땐 새 화가부터 추가하면 돼요.')); }
-function atExport(){ dl('artists.json',{ updated:'선생님 편집', artists:ATDATA }); atMsg('artists.json 파일을 받았어요. 이 파일을 artclass 저장소(학생 사이트)에 그대로 올리면 학생 화면에 반영돼요.'); }
+function atPull(){ const s=SITES[getTarget()].short; const base=(siteUrl(getTarget())||'').replace(/\/?$/,'/'); atMsg(s+'에서 불러오는 중...');
+  fetch(base+'artists.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.artists||d; let n=0; AT_CATS.forEach(c=>{ if(Array.isArray(src[c])){ ATDATA[c]=src[c]; n+=src[c].length; } }); atSaveLs(); atRenderList(); atMsg('현재 '+s+' 사이트 화가 '+n+'명을 불러왔어요.'); })
+  .catch(()=>atMsg('불러오지 못했어요. 아직 artists.json이 '+s+' 저장소에 없을 수 있어요. 그럴 땐 새 화가부터 추가하면 돼요.')); }
+function atExport(){ const s=SITES[getTarget()].short; dl('artists.json',{ updated:'선생님 편집', artists:ATDATA }); atMsg('artists.json 파일을 받았어요. 이 파일을 '+s+' 저장소에 그대로 올리면 '+s+' 학생 화면에 반영돼요.'); }
 </script>
 </body>
 </html>
