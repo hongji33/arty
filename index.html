@@ -178,7 +178,9 @@
         <li><button data-tab="memo" onclick="go('memo',this)">📝 메모장</button></li>
         <li><button data-tab="settings" onclick="go('settings',this)">⚙️ 설정</button></li>
       </ul>
-      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="goStudent()">🎨 학생 화면으로 가기</button>
+      <div style="font-size:11px; opacity:.7; padding:8px 4px 2px;">학생 화면 바로가기</div>
+      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="goStudent('funart')">📚 funart (내 수업)</button>
+      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="goStudent('artclass')">🎨 artclass (공용)</button>
       <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="window.open('https://hongji33.github.io/arthong1/','_blank')">🧩 미술작품 모둠퍼즐</button>
       <button class="logout" onclick="doLogout()">🔒 잠그기(로그아웃)</button>
     </aside>
@@ -788,7 +790,7 @@ function tgBar(id){ const t=getTarget();
     +'<span style="margin-left:auto; color:var(--muted); font-size:12.5px;">'+esc(siteUrl(t))+'</span></div>';
 }
 function tgRender(){ const t=getTarget(); const a=document.getElementById('tgtLesson'); const b=document.getElementById('tgtArtist'); if(a)a.innerHTML=tgBar('tgtLesson'); if(b)b.innerHTML=tgBar('tgtArtist'); }
-function goStudent(){ const u=siteUrl(getTarget()); if(!u){ alert('설정에서 학생 사이트 주소를 먼저 넣어주세요.'); go('settings',navBtn('settings')); return; } window.open(u,'_blank'); }
+function goStudent(site){ site=SITES[site]?site:getTarget(); const u=siteUrl(site); if(!u){ alert('설정에서 학생 사이트 주소를 먼저 넣어주세요.'); go('settings',navBtn('settings')); return; } window.open(u,'_blank'); }
 function saveStudentUrl(){ lsSet(SITES.funart.urlKey,(document.getElementById('setUrlFunart').value||'').trim()||SITES.funart.urlDef); lsSet(SITES.artclass.urlKey,(document.getElementById('setUrlArtclass').value||'').trim()||SITES.artclass.urlDef); const m=document.getElementById('stuMsg'); m.textContent='저장했어요.'; setTimeout(()=>m.textContent='',2000); tgRender(); }
 
 /* ================= 담당 반(공용) ================= */
