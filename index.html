@@ -414,6 +414,40 @@
           </div>
           <div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="lsMsg"></div>
         </div>
+
+        <div class="card" id="lsAiCard" style="background:#f3f7ff; border-color:#d6e4ff;">
+          <h3>🤖 AI로 수업 초안 만들기</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin:2px 0 12px;">간단한 내용만 넣고 <b>프롬프트 복사</b>를 누른 뒤, 아무 AI(클로드·제미나이·챗지피티 등)에 붙여넣으면 이 페이지 형식에 맞는 수업이 만들어져요. 그 결과(JSON)를 아래 '②'에 붙여넣으면 수업 목록에 추가돼요.</p>
+          <div class="row" style="gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:150px;"><label class="lbl">학년</label>
+              <select id="aiGrade" class="in"><option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option></select></div>
+            <div style="flex:2; min-width:200px;"><label class="lbl">수업 제목(주제)</label>
+              <input id="aiTitle" class="in" placeholder="예: 명화 속 색채 이야기"></div>
+          </div>
+          <div class="row" style="gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:150px;"><label class="lbl">단원(선택)</label>
+              <input id="aiUnit" class="in" placeholder="예: 색채"></div>
+            <div style="flex:2; min-width:200px;"><label class="lbl">참고 설명·키워드(선택)</label>
+              <input id="aiKeywords" class="in" placeholder="예: 반 고흐, 따뜻한 색, 감정 표현"></div>
+          </div>
+          <label class="lbl">꼭 넣을 섹션(선택)</label>
+          <div class="row" style="gap:14px; flex-wrap:wrap; font-size:14px;">
+            <label><input type="checkbox" class="aiSec" value="준비물"> 준비물</label>
+            <label><input type="checkbox" class="aiSec" value="수업 진행 과정"> 수업 진행 과정</label>
+            <label><input type="checkbox" class="aiSec" value="유의사항"> 유의사항</label>
+            <label><input type="checkbox" class="aiSec" value="평가·마무리"> 평가·마무리</label>
+          </div>
+          <div class="row" style="margin-top:12px;"><button class="btn" onclick="lsCopyPrompt()">📋 프롬프트 만들어 복사하기</button><span id="aiPromptMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
+          <textarea id="aiPromptOut" class="in" rows="6" style="width:100%; margin-top:10px; font-size:12.5px; display:none;" readonly></textarea>
+        </div>
+
+        <div class="card" id="lsImportCard" style="background:#f6fff3; border-color:#d6f0c8;">
+          <h3>📥 AI가 만든 수업(JSON) 붙여넣기</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin:2px 0 10px;">AI가 만들어 준 JSON을 여기에 붙여넣고 버튼을 누르면, 위에서 고른 학년의 수업 목록에 추가돼요. (```로 감싸져 있어도 괜찮아요.)</p>
+          <textarea id="aiImportIn" class="in" rows="6" style="width:100%; font-size:12.5px;" placeholder='여기에 AI가 준 JSON을 붙여넣으세요'></textarea>
+          <div class="row" style="margin-top:10px;"><button class="btn teal" onclick="lsImportJson()">이 수업 추가하기</button><span id="aiImportMsg" style="font-size:13px;"></span></div>
+        </div>
+
         <div class="card"><div id="lsList"></div></div>
         <div class="card" id="lsForm" style="display:none;"></div>
       </section>
@@ -923,10 +957,87 @@ function lsGrade(){ return document.getElementById('lsGrade').value; }
 function lsMsg(t){ const m=document.getElementById('lsMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
 function lsShow(){ if(!LSDATA)lsLoad(); tgRender();
   const isArt=(getTarget()==='artclass');
-  const guard=document.getElementById('lsGuard'); const ctrl=document.getElementById('lsControls'); const list=document.getElementById('lsList'); const form=document.getElementById('lsForm');
+  const ids=['lsControls','lsAiCard','lsImportCard','lsList','lsForm'];
+  const guard=document.getElementById('lsGuard');
   if(isArt){ guard.innerHTML='<div class="card" style="background:#fff4f4; border-color:#ffd0d0;">🎨 <b>artclass(공용)</b> 사이트에는 「수업 바로가기」가 없어요. 수업은 <b>📚 funart</b>에서만 편집할 수 있어요. 위에서 <b>funart</b>를 선택하거나, 화가 편집기를 이용해 주세요.</div>';
-    ctrl.style.display='none'; list.style.display='none'; form.style.display='none'; return; }
-  guard.innerHTML=''; ctrl.style.display=''; list.style.display=''; lsRenderList();
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el)el.style.display='none'; }); return; }
+  guard.innerHTML='';
+  document.getElementById('lsControls').style.display=''; document.getElementById('lsAiCard').style.display=''; document.getElementById('lsImportCard').style.display=''; document.getElementById('lsList').style.display='';
+  lsRenderList();
+}
+function lsCopyPrompt(){
+  const grade=document.getElementById('aiGrade').value;
+  const title=(document.getElementById('aiTitle').value||'').trim();
+  const unit=(document.getElementById('aiUnit').value||'').trim();
+  const kw=(document.getElementById('aiKeywords').value||'').trim();
+  if(!title){ alert('수업 제목(주제)을 먼저 넣어주세요.'); return; }
+  const secs=[...document.querySelectorAll('.aiSec:checked')].map(c=>c.value);
+  const mustLine = secs.length? ('- 반드시 넣을 섹션: '+secs.join(', ')+'\n') : '';
+  const p=
+'당신은 중학교 미술 선생님을 돕는 도우미예요. 아래 조건에 맞는 "중학교 미술 수업" 한 개를 만들어 주세요.\n\n'
++'[입력]\n'
++'- 학년: '+grade+'\n'
++'- 수업 제목(주제): '+title+'\n'
++'- 단원: '+(unit||'(자유)')+'\n'
++'- 참고 설명·키워드: '+(kw||'(없음)')+'\n'
++mustLine
++'\n[출력 규칙 — 매우 중요]\n'
++'1) 아래 JSON "형식"에 정확히 맞춰, 그 외 설명·인사말 없이 JSON만 출력하세요.\n'
++'2) 모든 내용은 한국어로, 중학생 눈높이에 맞춰 쉽고 흥미롭게 쓰세요.\n'
++'3) 문단 안에서 줄바꿈이 필요하면 \\n 을 사용하세요.\n'
++'4) sections(설명 섹션)에는 필요에 따라 "준비물", "수업 진행 과정", "유의사항", "평가·마무리" 같은 소제목을 자유롭게 넣어도 됩니다. 소제목은 원하는 만큼 늘릴 수 있어요.\n'
++'5) quiz의 ans는 정답 보기의 순서 번호예요(첫 번째=0, 두 번째=1, 세 번째=2).\n'
++'6) goals·think·viewing 은 각각 2개 정도, sections 는 4개 이상, quiz 는 2개 정도로 채워주세요.\n\n'
++'[JSON 형식]\n'
++'{\n'
++'  "unit": "단원/주제(짧게)",\n'
++'  "title": "수업 제목",\n'
++'  "intro": "이 수업에서 무엇을 하는지 1~2문장",\n'
++'  "goals": ["학습목표1", "학습목표2"],\n'
++'  "sections": [\n'
++'    {"h": "1. 소제목", "body": "설명 내용"},\n'
++'    {"h": "준비물", "body": "예: 도화지, 색연필 …"},\n'
++'    {"h": "수업 진행 과정", "body": "1) …\\n2) …\\n3) …"},\n'
++'    {"h": "유의사항", "body": "안전·주의할 점"}\n'
++'  ],\n'
++'  "activity": {"title": "오늘의 활동 제목", "desc": "학생이 할 활동 설명"},\n'
++'  "easy": "핵심을 아주 쉽게 풀어 2~3문장",\n'
++'  "think": ["생각해볼 질문1", "질문2"],\n'
++'  "viewing": ["작품 감상 질문1", "질문2"],\n'
++'  "quiz": [\n'
++'    {"q": "문제", "opts": ["보기1", "보기2", "보기3"], "ans": 0}\n'
++'  ]\n'
++'}\n\n'
++'이제 위 형식의 JSON만 출력해 주세요.';
+  const box=document.getElementById('aiPromptOut'); box.style.display='block'; box.value=p;
+  const done=(ok)=>{ const m=document.getElementById('aiPromptMsg'); m.textContent=ok?'복사했어요! AI 채팅창에 붙여넣으세요.':'복사가 안 되면 아래 칸에서 직접 복사하세요.'; setTimeout(()=>m.textContent='',5000); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(p).then(()=>done(true)).catch(()=>{ box.select(); done(false); }); }
+  else { box.select(); try{ document.execCommand('copy'); done(true); }catch(e){ done(false); } }
+}
+function lsImportJson(){
+  const raw=(document.getElementById('aiImportIn').value||'').trim(); const m=document.getElementById('aiImportMsg');
+  const fail=t=>{ m.style.color='#c92a2a'; m.textContent=t; };
+  const ok=t=>{ m.style.color='#2b8a3e'; m.textContent=t; setTimeout(()=>m.textContent='',5000); };
+  if(!raw){ fail('먼저 JSON을 붙여넣어 주세요.'); return; }
+  let txt=raw.replace(/```[a-zA-Z]*/g,'').replace(/```/g,'').trim();
+  const s=txt.indexOf('{'), e=txt.lastIndexOf('}');
+  if(s<0||e<0){ fail('JSON을 찾지 못했어요. AI 답변의 { … } 부분을 통째로 붙여넣어 주세요.'); return; }
+  let obj; try{ obj=JSON.parse(txt.slice(s,e+1)); }catch(err){ fail('JSON 형식이 올바르지 않아요. AI에게 "JSON만 다시 출력해줘"라고 요청해 보세요.'); return; }
+  const arr=Array.isArray(obj)?obj:(Array.isArray(obj.lessons)?obj.lessons:[obj]);
+  const grade=document.getElementById('aiGrade').value; let added=0;
+  arr.forEach(o=>{ if(!o||!o.title)return;
+    const lesson={ id:'l'+Date.now()+Math.floor(Math.random()*1000),
+      unit:o.unit||'', title:o.title, intro:o.intro||'',
+      goals:Array.isArray(o.goals)?o.goals:[],
+      sections:Array.isArray(o.sections)?o.sections.filter(x=>x&&(x.h||x.body)).map(x=>({h:x.h||'',body:x.body||''})):[],
+      activity:(o.activity&&typeof o.activity==='object')?{title:o.activity.title||'',desc:o.activity.desc||''}:{title:'',desc:''},
+      easy:o.easy||'', think:Array.isArray(o.think)?o.think:[], viewing:Array.isArray(o.viewing)?o.viewing:[],
+      quiz:Array.isArray(o.quiz)?o.quiz.filter(q=>q&&q.q).map(q=>({q:q.q,opts:Array.isArray(q.opts)?q.opts:[],ans:+q.ans||0})):[] };
+    LSDATA[grade].push(lesson); added++;
+  });
+  if(!added){ fail('추가할 수업을 찾지 못했어요. (제목이 있는 JSON인지 확인해 주세요.)'); return; }
+  lsSaveLs(); document.getElementById('aiImportIn').value=''; document.getElementById('lsGrade').value=grade; lsRenderList();
+  ok(grade+'에 수업 '+added+'개를 추가했어요! 목록에서 확인하고, 다 됐으면 ② lessons.json 내보내기 하세요.');
 }
 function lsRenderList(){ const g=lsGrade(); const arr=LSDATA[g]||[]; const box=document.getElementById('lsList');
   if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">'+g+' 수업이 아직 없어요. ＋ 새 수업으로 만들어 주세요. (처음이면 먼저 ① 불러오기를 눌러 현재 수업을 가져오세요.)</p>'; return; }
