@@ -86,8 +86,40 @@
   /* picker */
   #pickResult{font-size:44px; font-weight:800; text-align:center; padding:26px; border-radius:16px; background:#f3f1ff; color:var(--brand); min-height:60px;}
   /* timer */
-  #timerDisp{font-size:74px; font-weight:800; text-align:center; letter-spacing:.04em; color:var(--ink);}
   input[type=range]{accent-color:var(--brand);}
+  #page-timer.board{position:fixed; inset:0; z-index:55; background:#0f1226; color:#fff; overflow:auto; padding:24px; display:flex; flex-direction:column; justify-content:center;}
+  #page-timer.board .tmr-setup, #page-timer.board .tmr-toolbar, #page-timer.board .title, #page-timer.board .lead{display:none;}
+  #page-timer.board #tmrDisplay{background:transparent; border:0; box-shadow:none;}
+  #page-timer.board #tmrStageName{font-size:min(7vw,54px); color:#ffd8a8;}
+  #page-timer.board #tmrBig{font-size:min(30vw,300px); color:#fff; line-height:1.05;}
+  #page-timer.board #tmrProgress{font-size:min(4vw,26px); color:#c7cbe0;}
+  #page-timer.board .btn{font-size:20px; padding:14px 24px;}
+  /* 점수판 */
+  .sc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;}
+  .sc-card{border:1px solid var(--line); border-radius:16px; padding:14px; text-align:center; background:#fff;}
+  .sc-name{font-weight:800; color:var(--brand); margin-bottom:4px;}
+  .sc-val{font-size:44px; font-weight:800; line-height:1.1; margin:4px 0;}
+  .sc-btns{display:flex; gap:6px; justify-content:center;}
+  .sc-btns button{border:0; border-radius:10px; font-size:18px; font-weight:800; padding:8px 12px; cursor:pointer; color:#fff;}
+  .sc-minus{background:#adb5bd;} .sc-plus{background:var(--brand);}
+  #page-score.board{position:fixed; inset:0; z-index:55; background:#0f1226; overflow:auto; padding:30px;}
+  #page-score.board .sc-setup, #page-score.board .sc-toolbar, #page-score.board .title, #page-score.board .lead{display:none;}
+  #page-score.board .card{background:transparent; border:0; box-shadow:none;}
+  #page-score.board .sc-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px;}
+  #page-score.board .sc-card{background:#1a1f3d; border-color:#2a3157;}
+  #page-score.board .sc-name{color:#ffd8a8; font-size:26px;}
+  #page-score.board .sc-val{color:#fff; font-size:76px;}
+  #page-score.board .sc-btns button{font-size:22px; padding:12px 18px;}
+  /* 학생 체크 */
+  .ck-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
+  .ck-row{display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; cursor:pointer; font-size:15px;}
+  .ck-row:hover{border-color:var(--brand);}
+  .ck-num{width:24px; text-align:center; color:var(--muted); font-weight:700;}
+  .ck-nm{flex:1; font-weight:700;}
+  .ck-badge{font-weight:800; font-size:14px; padding:4px 8px; border-radius:8px; white-space:nowrap;}
+  .ck-ok{background:#e6f7ec; color:#2b8a3e;} .ck-no{background:#f1f3f5; color:#868e96;}
+  .ck-a{background:#e6f7ec; color:#2b8a3e;} .ck-b{background:#fff3bf; color:#a97b06;} .ck-c{background:#ffe3e3; color:#c92a2a;}
+  .ck-star{background:#fff9db; color:#f08c00; letter-spacing:2px;}
   /* 주별 수업계획 */
   .plan-table{width:100%; border-collapse:collapse; font-size:13.5px;}
   .plan-table th,.plan-table td{border:1px solid var(--line); padding:8px; vertical-align:top;}
@@ -136,7 +168,13 @@
         <li><button data-tab="planner" onclick="go('planner',this)">📅 주별 수업계획</button></li>
         <li><button data-tab="checklist" onclick="go('checklist',this)">✅ 준비물 체크리스트</button></li>
         <li><button data-tab="picker" onclick="go('picker',this)">🎲 랜덤 뽑기</button></li>
-        <li><button data-tab="timer" onclick="go('timer',this)">⏱️ 수업 타이머</button></li>
+        <li><button data-tab="score" onclick="go('score',this)">🏆 모둠 점수판</button></li>
+        <li><button data-tab="check" onclick="go('check',this)">🗂️ 학생 체크</button></li>
+        <li><button data-tab="timer" onclick="go('timer',this)">⏱️ 미술실 타이머</button></li>
+        <li style="margin-top:10px; padding:6px 14px 2px; font-size:11.5px; letter-spacing:.04em; opacity:.7;">✏️ 학생 사이트 관리</li>
+        <li><button data-tab="lesson" onclick="go('lesson',this)">📚 수업 편집기</button></li>
+        <li><button data-tab="artistedit" onclick="go('artistedit',this)">🖼️ 화가 편집기</button></li>
+        <li style="margin-top:10px;"></li>
         <li><button data-tab="memo" onclick="go('memo',this)">📝 메모장</button></li>
         <li><button data-tab="settings" onclick="go('settings',this)">⚙️ 설정</button></li>
       </ul>
@@ -154,8 +192,10 @@
           <div class="home-card" style="border-top-color:#5b57d6;" onclick="go('seat',navBtn('seat'))"><div class="e">🪑</div><h4>미술실 자리배치</h4><p>모둠·지정석·역할·칠판 보기</p></div>
           <div class="home-card" style="border-top-color:#12b3a6;" onclick="go('materials',navBtn('materials'))"><div class="e">🎨</div><h4>미술 재료 정리</h4><p>보유·부족 재료를 한눈에 관리</p></div>
           <div class="home-card" style="border-top-color:#f0714f;" onclick="go('checklist',navBtn('checklist'))"><div class="e">✅</div><h4>준비물 체크리스트</h4><p>수업별 준비물 점검</p></div>
-          <div class="home-card" style="border-top-color:#e8590c;" onclick="go('picker',navBtn('picker'))"><div class="e">🎲</div><h4>랜덤 뽑기</h4><p>발표자·모둠 랜덤 정하기</p></div>
-          <div class="home-card" style="border-top-color:#2b8a3e;" onclick="go('timer',navBtn('timer'))"><div class="e">⏱️</div><h4>수업 타이머</h4><p>활동 시간 재기</p></div>
+          <div class="home-card" style="border-top-color:#e8590c;" onclick="go('picker',navBtn('picker'))"><div class="e">🎲</div><h4>랜덤 뽑기</h4><p>발표자·도우미·정리 담당</p></div>
+          <div class="home-card" style="border-top-color:#f59f00;" onclick="go('score',navBtn('score'))"><div class="e">🏆</div><h4>모둠 점수판</h4><p>모둠별 점수 올리기·칠판 보기</p></div>
+          <div class="home-card" style="border-top-color:#1971c2;" onclick="go('check',navBtn('check'))"><div class="e">🗂️</div><h4>학생 체크</h4><p>작품 제출·수행평가·참여도</p></div>
+          <div class="home-card" style="border-top-color:#2b8a3e;" onclick="go('timer',navBtn('timer'))"><div class="e">⏱️</div><h4>미술실 타이머</h4><p>단계별 활동 시간 재기</p></div>
           <div class="home-card" style="border-top-color:#7048e8;" onclick="go('memo',navBtn('memo'))"><div class="e">📝</div><h4>메모장</h4><p>간단 메모·할 일</p></div>
         </div>
       </section>
@@ -292,35 +332,132 @@
           <textarea id="pickRoster" rows="4" class="in" style="width:100%;" placeholder="김미술&#10;이그림"></textarea>
           <div class="row" style="margin-top:8px;"><button class="mini gray" onclick="pickLoadClass()">📋 자리배치 반 명단 불러오기</button></div>
           <div class="row" style="margin-top:12px;">
-            <button class="btn warm" onclick="pickOne()">🎯 한 명 뽑기</button>
+            <button class="btn warm" onclick="pickOne()">🎯 한 명 뽑기 (발표자)</button>
             <button class="btn ghost" onclick="pickGroups()">👥 모둠으로 나누기</button>
             <input id="pickGroupN" class="in" style="width:110px;" type="number" min="2" value="4" title="한 모둠 인원">
           </div>
+          <div class="row" style="margin-top:8px;">
+            <button class="btn teal" onclick="pickHelper()">🙋 오늘의 도우미 뽑기</button>
+            <input id="pickHelperN" class="in" style="width:110px;" type="number" min="1" value="2" title="도우미 인원">
+            <button class="btn" style="background:#2b8a3e;" onclick="pickCleanRoles()">🧹 정리 담당 뽑기</button>
+          </div>
+          <div style="font-size:12.5px; color:var(--muted); margin-top:8px;">🧹 정리 담당: 바닥 쓸기 · 책상 닦기 · 붓·팔레트 정리 · 작품 걷기 · 재료 정리 를 자동으로 나눠줘요.</div>
         </div>
         <div class="card"><div id="pickResult">여기에 결과가 나와요</div><div id="pickGroupsOut" style="margin-top:14px;"></div></div>
       </section>
 
-      <!-- 타이머 -->
-      <section class="page" id="page-timer">
-        <h2 class="title">⏱️ 수업 타이머</h2>
-        <p class="lead">활동 시간을 재는 카운트다운 타이머예요. 시간이 다 되면 소리로 알려줘요.</p>
-        <div class="card">
-          <div id="timerDisp">10:00</div>
-          <div class="row" style="justify-content:center; margin-top:14px;">
-            <button class="mini gray" onclick="timerAdd(-60)">－1분</button>
-            <button class="mini gray" onclick="timerAdd(60)">＋1분</button>
-            <button class="mini gray" onclick="timerAdd(300)">＋5분</button>
-            <button class="mini gray" onclick="timerSet(0)">0으로</button>
-          </div>
-          <div class="row" style="justify-content:center; margin-top:12px;">
-            <button class="btn" id="timerStartBtn" onclick="timerToggle()">▶ 시작</button>
-            <button class="btn ghost" onclick="timerReset()">↺ 리셋</button>
-          </div>
-          <div class="row" style="justify-content:center; margin-top:12px;">
-            <button class="seg" onclick="timerPreset(5)">5분</button><button class="seg" onclick="timerPreset(10)">10분</button>
-            <button class="seg" onclick="timerPreset(15)">15분</button><button class="seg" onclick="timerPreset(20)">20분</button>
+      <!-- 모둠 점수판 -->
+      <section class="page" id="page-score">
+        <h2 class="title">🏆 모둠 점수판</h2>
+        <p class="lead">모둠별로 점수를 올리고 내려요. '칠판에 크게 띄우기'로 학생들과 함께 보며 활동을 격려하세요. 점수는 자동 저장돼요.</p>
+        <div class="card sc-setup">
+          <div class="row" style="align-items:center; gap:10px;">
+            <label class="lbl" style="margin:0;">모둠 수</label>
+            <input id="scCount" class="in" type="number" min="1" max="12" value="6" style="width:90px;" oninput="scSetCount(this.value)">
+            <button class="mini gray" onclick="scResetScores()">점수 0으로</button>
+            <button class="mini gray" onclick="scRename()">모둠 이름 바꾸기</button>
           </div>
         </div>
+        <div class="sc-toolbar row" style="margin:12px 0;"><button class="btn teal" onclick="scBoard(true)">🖥️ 칠판에 크게 띄우기</button></div>
+        <div class="card"><div id="scGrid" class="sc-grid"></div></div>
+        <button id="scBoardExit" onclick="scBoard(false)" style="display:none; position:fixed; top:14px; right:14px; z-index:60; border:0; background:var(--accent); color:#fff; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer;">✕ 크게보기 끝내기</button>
+      </section>
+
+      <!-- 학생 체크 -->
+      <section class="page" id="page-check">
+        <h2 class="title">🗂️ 학생 체크</h2>
+        <p class="lead">반별 명단으로 작품 제출·수행평가·참여도를 한 번에 확인해요. 이름을 클릭하면 표시가 바뀌고, 자동으로 저장돼요.</p>
+        <div class="card">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl" style="margin:0;">반 선택</label>
+            <select id="ckClass" class="in" style="width:auto; min-width:120px;" onchange="ckRender()"></select>
+            <label class="lbl" style="margin:0;">항목</label>
+            <select id="ckKind" class="in" style="width:auto; min-width:150px;" onchange="ckRender()">
+              <option value="submit">📦 작품 제출</option>
+              <option value="assess">✍️ 수행평가</option>
+              <option value="part">🙌 참여도</option>
+            </select>
+            <button class="mini gray" onclick="ckClearCol()">이 항목 초기화</button>
+            <button class="btn teal" style="margin-left:auto;" onclick="ckPrint()">🖨️ 인쇄 / PDF</button>
+          </div>
+          <div style="font-size:12.5px; color:var(--muted); margin-top:8px;" id="ckHint"></div>
+        </div>
+        <div class="card"><div id="ckGrid"></div></div>
+      </section>
+
+      <!-- 수업 편집기 -->
+      <section class="page" id="page-lesson">
+        <h2 class="title">📚 수업 편집기</h2>
+        <p class="lead">학생 사이트 「수업 바로가기」에 보일 수업을 직접 만들고 고쳐요. 다 만든 뒤 <b>lessons.json 내보내기</b>로 파일을 받아 <b>artclass 저장소</b>에 올리면 모든 학생 화면에 반영돼요.</p>
+        <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
+          <b>📌 사용 순서</b>
+          <ol style="margin:8px 0 0; padding-left:20px; line-height:1.9; font-size:14px;">
+            <li><b>① 불러오기</b>로 현재 학생 사이트의 수업을 가져와요(처음 한 번).</li>
+            <li>학년을 고르고 <b>＋ 새 수업</b>을 만들거나, 목록에서 <b>수정</b>을 눌러 고쳐요.</li>
+            <li><b>② lessons.json 내보내기</b>로 파일을 받아요.</li>
+            <li>그 파일을 <b>artclass 저장소</b>(학생 사이트)에 올리면 끝!</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl" style="margin:0;">학년</label>
+            <select id="lsGrade" class="in" style="width:auto; min-width:90px;" onchange="lsRenderList()">
+              <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
+            </select>
+            <button class="btn warm" onclick="lsNew()">＋ 새 수업</button>
+            <button class="mini gray" onclick="lsPull()">① 학생 사이트에서 불러오기</button>
+            <button class="btn teal" style="margin-left:auto;" onclick="lsExport()">② lessons.json 내보내기</button>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="lsMsg"></div>
+        </div>
+        <div class="card"><div id="lsList"></div></div>
+        <div class="card" id="lsForm" style="display:none;"></div>
+      </section>
+
+      <!-- 화가 편집기 -->
+      <section class="page" id="page-artistedit">
+        <h2 class="title">🖼️ 화가 편집기</h2>
+        <p class="lead">학생 사이트 「추천 화가·디자이너」에 보일 인물을 추가·수정해요. <b>artists.json 내보내기</b>로 파일을 받아 <b>artclass 저장소</b>에 올리면 학생 화면에 반영돼요.</p>
+        <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
+          <b>📌 사용 순서</b>: ① 불러오기 → 분류 고르고 ＋ 새 화가 / 수정 → ② artists.json 내보내기 → artclass 저장소에 올리기
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl" style="margin:0;">분류</label>
+            <select id="atCat" class="in" style="width:auto; min-width:130px;" onchange="atRenderList()">
+              <option value="world">해외 화가</option><option value="korea">국내 화가</option><option value="design">디자이너</option>
+            </select>
+            <button class="btn warm" onclick="atNew()">＋ 새 화가</button>
+            <button class="mini gray" onclick="atPull()">① 학생 사이트에서 불러오기</button>
+            <button class="btn teal" style="margin-left:auto;" onclick="atExport()">② artists.json 내보내기</button>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="atMsg"></div>
+        </div>
+        <div class="card"><div id="atList"></div></div>
+        <div class="card" id="atForm" style="display:none;"></div>
+      </section>
+
+      <!-- 미술실 타이머 (다단계) -->
+      <section class="page" id="page-timer">
+        <h2 class="title">⏱️ 미술실 타이머</h2>
+        <p class="lead">미술 수업 단계별로 시간을 재요. 시작하면 단계가 자동으로 넘어가고, 소리로 알려줘요. '칠판에 크게 띄우기'로 학생들과 함께 보세요.</p>
+        <div class="card tmr-setup">
+          <h3>🧩 단계 설정</h3>
+          <div id="stageList"></div>
+          <div class="row" style="margin-top:10px;"><button class="mini" onclick="tmrAddStage()">＋ 단계 추가</button><button class="mini gray" onclick="tmrResetStages()">기본값으로</button></div>
+        </div>
+        <div class="tmr-toolbar row" style="margin-bottom:12px;"><button class="btn teal" onclick="tmrBoard(true)">🖥️ 칠판에 크게 띄우기</button></div>
+        <div class="card" id="tmrDisplay" style="text-align:center;">
+          <div id="tmrStageName" style="font-size:20px; font-weight:800; color:var(--brand);">단계를 설정하고 시작하세요</div>
+          <div id="tmrBig" style="font-size:74px; font-weight:800; letter-spacing:.04em; margin:6px 0;">05:00</div>
+          <div id="tmrProgress" style="color:var(--muted); font-size:14px;"></div>
+          <div class="row" style="justify-content:center; margin-top:16px;">
+            <button class="btn" id="tmrStart" onclick="tmrToggle()">▶ 시작</button>
+            <button class="btn ghost" onclick="tmrNext()">⏭ 다음 단계</button>
+            <button class="btn ghost" onclick="tmrReset()">↺ 리셋</button>
+          </div>
+        </div>
+        <button id="tmrBoardExit" onclick="tmrBoard(false)" style="display:none; position:fixed; top:14px; right:14px; z-index:60; border:0; background:var(--accent); color:#fff; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer;">✕ 크게보기 끝내기</button>
       </section>
 
       <!-- 메모 -->
@@ -405,6 +542,10 @@ function go(tab, btn){
   if(tab==='checklist') clRender();
   if(tab==='planner') planRender();
   if(tab==='timer') timerShow();
+  if(tab==='score') scRender();
+  if(tab==='check') ckShow();
+  if(tab==='lesson') lsShow();
+  if(tab==='artistedit') atShow();
   window.scrollTo(0,0);
 }
 function esc(s){ return (s==null?'':''+s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
@@ -540,23 +681,77 @@ function pickOne(){ const n=pickNames(); const out=document.getElementById('pick
 function pickGroups(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='👥 모둠 편성'; const k=Math.max(2,+document.getElementById('pickGroupN').value||4); if(!n.length){ out.innerHTML=''; return; }
   const groups=[]; for(let i=0;i<n.length;i+=k) groups.push(n.slice(i,i+k));
   out.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:12px;">'+groups.map((g,i)=>'<div class="group" style="min-width:150px;"><div style="font-weight:800;margin-bottom:6px;color:var(--brand);">'+(i+1)+'모둠</div>'+g.map(x=>'<div class="seat" style="cursor:default;min-height:38px;">'+esc(x)+'</div>').join('')+'</div>').join('')+'</div>'; }
+function pickHelper(){ const n=sShuf(pickNames()); const out=document.getElementById('pickResult'); document.getElementById('pickGroupsOut').innerHTML=''; if(!n.length){ out.textContent='이름을 먼저 넣어주세요'; return; }
+  const k=Math.max(1,+document.getElementById('pickHelperN').value||1); const chosen=n.slice(0,k);
+  out.innerHTML='🙋 오늘의 도우미<div style="font-size:34px; font-weight:800; margin-top:8px; color:var(--brand);">'+chosen.map(esc).join(' · ')+'</div>'; }
+const CLEAN_ROLES=['바닥 쓸기','책상 닦기','붓·팔레트 정리','작품 걷기','재료 정리'];
+function pickCleanRoles(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='🧹 오늘의 정리 담당'; if(!n.length){ out.innerHTML='이름을 먼저 넣어주세요'; return; }
+  const rows=CLEAN_ROLES.map((r,i)=> n[i]?('<tr><td style="padding:8px 12px; font-weight:700; white-space:nowrap;">'+r+'</td><td style="padding:8px 12px;">'+esc(n[i])+'</td></tr>'):'').join('');
+  out.innerHTML='<table style="width:100%; border-collapse:collapse;">'+rows+'</table>'
+    +(n.length>CLEAN_ROLES.length?'<div style="font-size:12.5px;color:var(--muted);margin-top:8px;">나머지 학생: '+n.slice(CLEAN_ROLES.length).map(esc).join(', ')+'</div>':''); }
 
-/* ================= 타이머 ================= */
-let timerSec=600, timerIv=null;
-function timerFmt(s){ s=Math.max(0,s); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
-function timerShow(){ document.getElementById('timerDisp').textContent=timerFmt(timerSec); }
-function timerAdd(d){ timerSec=Math.max(0,timerSec+d); timerShow(); }
-function timerSet(s){ timerSec=s; timerShow(); }
-function timerPreset(m){ timerSec=m*60; timerShow(); if(timerIv){ timerToggle(); } }
-function timerReset(){ if(timerIv){ clearInterval(timerIv); timerIv=null; document.getElementById('timerStartBtn').textContent='▶ 시작'; } }
-function timerToggle(){ const btn=document.getElementById('timerStartBtn');
-  if(timerIv){ clearInterval(timerIv); timerIv=null; btn.textContent='▶ 계속'; return; }
-  if(timerSec<=0)return; btn.textContent='⏸ 멈춤';
-  timerIv=setInterval(()=>{ timerSec--; timerShow(); if(timerSec<=0){ clearInterval(timerIv); timerIv=null; btn.textContent='▶ 시작'; timerBeep(); } },1000);
+/* ================= 미술실 다단계 타이머 ================= */
+let TMR={stages:[],idx:0,remain:0,iv:null,running:false,loaded:false};
+function tmrDefault(){ return [
+  {label:'아이디어 구상',min:5},
+  {label:'작품 제작',min:15},
+  {label:'작품 정리',min:3},
+  {label:'자리 정돈',min:2}
+]; }
+function tmrLoad(){ if(TMR.loaded)return; const s=lsGet('tbook_tmr',null); TMR.stages=(Array.isArray(s)&&s.length)?s:tmrDefault(); TMR.loaded=true; tmrResetState(); }
+function tmrSaveStages(){ lsSet('tbook_tmr',TMR.stages); }
+function tmrResetState(){ if(TMR.iv){clearInterval(TMR.iv);TMR.iv=null;} TMR.running=false; TMR.idx=0; TMR.remain=(TMR.stages[0]?TMR.stages[0].min*60:0); }
+function tmrFmt(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function tmrRenderSetup(){ const box=document.getElementById('stageList'); if(!box)return;
+  if(!TMR.stages.length){ box.innerHTML='<p style="color:var(--muted)">단계가 없어요. ＋ 단계 추가를 눌러 만들어 주세요.</p>'; return; }
+  box.innerHTML=TMR.stages.map((st,i)=>
+    '<div class="row" style="align-items:center; gap:8px; margin:6px 0;">'
+    +'<span style="width:22px; text-align:center; color:var(--muted); font-weight:700;">'+(i+1)+'</span>'
+    +'<input class="in" style="flex:1; min-width:120px;" value="'+esc(st.label)+'" oninput="tmrEditLabel('+i+',this.value)">'
+    +'<input class="in" type="number" min="0" max="90" style="width:74px;" value="'+st.min+'" oninput="tmrEditMin('+i+',this.value)"><span style="color:var(--muted)">분</span>'
+    +'<button class="mini gray" onclick="tmrDelStage('+i+')">삭제</button>'
+    +'</div>').join('');
 }
+function tmrEditLabel(i,v){ if(TMR.stages[i]){ TMR.stages[i].label=v; tmrSaveStages(); if(!TMR.running&&i===TMR.idx)tmrShow(); } }
+function tmrEditMin(i,v){ if(TMR.stages[i]){ TMR.stages[i].min=Math.max(0,parseInt(v)||0); tmrSaveStages(); if(!TMR.running&&i===TMR.idx){ TMR.remain=TMR.stages[i].min*60; tmrShow(); } } }
+function tmrAddStage(){ TMR.stages.push({label:'새 단계',min:5}); tmrSaveStages(); tmrRenderSetup(); }
+function tmrDelStage(i){ TMR.stages.splice(i,1); tmrSaveStages(); if(TMR.idx>=TMR.stages.length)TMR.idx=Math.max(0,TMR.stages.length-1); if(!TMR.running)tmrResetState(); tmrRenderSetup(); tmrShow(); }
+function tmrResetStages(){ if(!confirm('단계를 기본값(아이디어 구상·작품 제작·작품 정리·자리 정돈)으로 되돌릴까요?'))return; TMR.stages=tmrDefault(); tmrSaveStages(); tmrResetState(); tmrRenderSetup(); tmrShow(); }
+function tmrShow(){ const nm=document.getElementById('tmrStageName'), big=document.getElementById('tmrBig'), pg=document.getElementById('tmrProgress'); if(!big)return;
+  const st=TMR.stages[TMR.idx];
+  if(!st){ nm.textContent='단계를 추가해 주세요'; big.textContent='00:00'; pg.textContent=''; return; }
+  nm.textContent='지금은 '+st.label+' 시간입니다';
+  big.textContent=tmrFmt(TMR.remain);
+  pg.textContent='단계 '+(TMR.idx+1)+' / '+TMR.stages.length+' · 남은 시간 '+tmrFmt(TMR.remain);
+  if(TMR.remain<=10 && TMR.running) big.style.color='var(--accent)'; else big.style.color='';
+}
+function tmrTick(){ TMR.remain--; if(TMR.remain<=0){ TMR.remain=0; tmrShow(); timerBeep();
+    if(TMR.idx < TMR.stages.length-1){ TMR.idx++; TMR.remain=TMR.stages[TMR.idx].min*60; tmrShow(); }
+    else { tmrPause(); document.getElementById('tmrStart').textContent='▶ 시작'; }
+    return; }
+  tmrShow();
+}
+function tmrPause(){ if(TMR.iv){clearInterval(TMR.iv);TMR.iv=null;} TMR.running=false; }
+function tmrToggle(){ const btn=document.getElementById('tmrStart'); if(!TMR.stages.length)return;
+  if(TMR.running){ tmrPause(); btn.textContent='▶ 계속'; return; }
+  if(TMR.remain<=0){ TMR.remain=TMR.stages[TMR.idx]?TMR.stages[TMR.idx].min*60:0; }
+  if(TMR.remain<=0)return;
+  TMR.running=true; btn.textContent='⏸ 멈춤';
+  TMR.iv=setInterval(tmrTick,1000); tmrShow();
+}
+function tmrNext(){ tmrPause(); document.getElementById('tmrStart').textContent='▶ 시작';
+  if(TMR.idx < TMR.stages.length-1){ TMR.idx++; } TMR.remain=TMR.stages[TMR.idx]?TMR.stages[TMR.idx].min*60:0; tmrShow(); }
+function tmrReset(){ tmrResetState(); document.getElementById('tmrStart').textContent='▶ 시작'; tmrShow(); }
+function tmrBoard(on){ const pg=document.getElementById('page-timer'); const ex=document.getElementById('tmrBoardExit');
+  pg.classList.toggle('board',on); ex.style.display=on?'block':'none';
+  if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); }
+  else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); }
+}
+/* 기존 이름 호환: go('timer')/bootApp() 이 timerShow를 호출 */
+function timerShow(){ tmrLoad(); tmrRenderSetup(); tmrShow(); }
 function timerBeep(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); let t=a.currentTime;
   for(let i=0;i<3;i++){ const o=a.createOscillator(),g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.start(t); o.stop(t+0.37); t+=0.45; }
-  }catch(e){} alert('⏰ 시간이 다 됐어요!'); }
+  }catch(e){} }
 
 /* ================= 메모 ================= */
 function memoInit(){ const a=document.getElementById('memoArea'); a.value=lsGet('tbook_memo',''); let tm=null; a.addEventListener('input',()=>{ clearTimeout(tm); document.getElementById('memoMsg').textContent='저장 중...'; tm=setTimeout(()=>{ lsSet('tbook_memo',a.value); document.getElementById('memoMsg').textContent='자동 저장됨 ✓'; },500); }); }
@@ -634,11 +829,168 @@ function planToggleEvent(i){ PLAN.rows[i].event=!PLAN.rows[i].event; planSaveLs(
 function planPrint(){ window.print(); }
 
 /* ================= 부팅 ================= */
-function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); matRender(); clRender(); memoInit(); timerShow();
+function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); matRender(); clRender(); memoInit(); timerShow(); scLoad(); ckLoad(); lsLoad(); atLoad();
   const my=getMyClasses(); const s=document.getElementById('setCls'); if(s) s.value=my.join('\n');
   const su=document.getElementById('setStudentUrl'); if(su) su.value=studentUrl();
   if(!my.length) document.getElementById('onboard').style.display='flex';
 }
+
+/* ================= 모둠 점수판 ================= */
+let SCORE=null;
+function scDefault(){ return {count:6, names:{}, scores:{}}; }
+function scLoad(){ SCORE=lsGet('tbook_score',null)||scDefault(); if(!SCORE.names)SCORE.names={}; if(!SCORE.scores)SCORE.scores={}; if(!SCORE.count)SCORE.count=6; }
+function scSave(){ lsSet('tbook_score',SCORE); }
+function scName(i){ return SCORE.names[i]||((i+1)+'모둠'); }
+function scVal(i){ return SCORE.scores[i]||0; }
+function scRender(){ if(!SCORE)scLoad(); const g=document.getElementById('scGrid'); if(!g)return;
+  const cnt=document.getElementById('scCount'); if(cnt)cnt.value=SCORE.count;
+  const cards=[]; for(let i=0;i<SCORE.count;i++){
+    cards.push('<div class="sc-card"><div class="sc-name">'+esc(scName(i))+'</div>'
+      +'<div class="sc-val">'+scVal(i)+'</div>'
+      +'<div class="sc-btns"><button class="sc-minus" onclick="scAdd('+i+',-1)">－</button>'
+      +'<button class="sc-plus" onclick="scAdd('+i+',1)">＋</button>'
+      +'<button class="sc-plus" style="background:#f59f00;" onclick="scAdd('+i+',5)">＋5</button></div></div>');
+  }
+  g.innerHTML=cards.join('');
+}
+function scAdd(i,d){ SCORE.scores[i]=Math.max(0,scVal(i)+d); scSave(); scRender(); }
+function scSetCount(v){ SCORE.count=Math.max(1,Math.min(12,parseInt(v)||1)); scSave(); scRender(); }
+function scResetScores(){ if(!confirm('모든 모둠 점수를 0으로 되돌릴까요?'))return; SCORE.scores={}; scSave(); scRender(); }
+function scRename(){ const i=prompt('이름을 바꿀 모둠 번호를 입력하세요 (1 ~ '+SCORE.count+')'); if(!i)return; const idx=parseInt(i)-1; if(isNaN(idx)||idx<0||idx>=SCORE.count){ alert('번호가 올바르지 않아요.'); return; } const nm=prompt('새 이름:', scName(idx)); if(nm===null)return; SCORE.names[idx]=nm.trim()||((idx+1)+'모둠'); scSave(); scRender(); }
+function scBoard(on){ const pg=document.getElementById('page-score'); const ex=document.getElementById('scBoardExit'); pg.classList.toggle('board',on); ex.style.display=on?'block':'none'; if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); } else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); } scRender(); }
+
+/* ================= 학생 체크 ================= */
+let CHECK=null;
+function ckLoad(){ CHECK=lsGet('tbook_check',null)||{}; }
+function ckSave(){ lsSet('tbook_check',CHECK); }
+function ckClasses(){ const my=getMyClasses(); if(my.length)return my; if(!SEAT)seatLoad(); return Object.keys(SEAT.classes); }
+function ckRoster(cls){ if(!SEAT)seatLoad(); const c=SEAT.classes[cls]; return (c&&c.students)?c.students.filter(Boolean):[]; }
+function ckShow(){ if(!CHECK)ckLoad(); const sel=document.getElementById('ckClass'); const cls=ckClasses();
+  sel.innerHTML=cls.length?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''):'<option value="">(반 없음)</option>';
+  ckRender();
+}
+const CK_KINDS={
+  submit:{label:'작품 제출', hint:'이름을 클릭하면 제출(✓)·미제출로 바뀌어요.', cycle:['','done'], render:v=>v==='done'?'<span class="ck-badge ck-ok">✓ 제출</span>':'<span class="ck-badge ck-no">미제출</span>'},
+  assess:{label:'수행평가', hint:'클릭할 때마다 잘함(○)→보통(△)→노력요함(✗)→(없음) 순으로 바뀌어요.', cycle:['','A','B','C'], render:v=>({'A':'<span class="ck-badge ck-a">○ 잘함</span>','B':'<span class="ck-badge ck-b">△ 보통</span>','C':'<span class="ck-badge ck-c">✗ 노력요함</span>'}[v]||'<span class="ck-badge ck-no">미평가</span>')},
+  part:{label:'참여도', hint:'클릭할 때마다 별이 하나씩 늘어요(최대 5개). 활동 참여를 기록해요.', cycle:['0','1','2','3','4','5'], render:v=>{ const n=parseInt(v)||0; return '<span class="ck-badge ck-star">'+('★'.repeat(n)||'☆')+'</span>'; }}
+};
+function ckGet(cls,name,kind){ return ((CHECK[cls]||{})[name]||{})[kind]||(kind==='part'?'0':''); }
+function ckSet(cls,name,kind,val){ CHECK[cls]=CHECK[cls]||{}; CHECK[cls][name]=CHECK[cls][name]||{}; CHECK[cls][name][kind]=val; ckSave(); }
+function ckCycle(cls,name,kind){ const k=CK_KINDS[kind]; const cyc=k.cycle; const cur=ckGet(cls,name,kind); let i=cyc.indexOf(cur); i=(i+1)%cyc.length; ckSet(cls,name,kind,cyc[i]); ckRender(); }
+function ckRender(){ if(!CHECK)ckLoad(); const cls=document.getElementById('ckClass').value; const kind=document.getElementById('ckKind').value; const g=document.getElementById('ckGrid'); const hint=document.getElementById('ckHint');
+  hint.textContent=CK_KINDS[kind].hint;
+  if(!cls){ g.innerHTML='<p style="color:var(--muted)">담당 반이 없어요. 설정에서 담당 반을 먼저 넣어주세요.</p>'; return; }
+  const roster=ckRoster(cls);
+  if(!roster.length){ g.innerHTML='<p style="color:var(--muted)">이 반의 명단이 없어요. 자리배치에서 「'+esc(cls)+'」 반 명단을 먼저 입력해 주세요.</p>'; return; }
+  g.innerHTML='<div class="ck-list">'+roster.map((nm,i)=>{ const v=ckGet(cls,nm,kind);
+    return '<button class="ck-row" onclick="ckCycle(\''+cls.replace(/'/g,"\\'")+'\',\''+nm.replace(/'/g,"\\'")+'\',\''+kind+'\')"><span class="ck-num">'+(i+1)+'</span><span class="ck-nm">'+esc(nm)+'</span>'+CK_KINDS[kind].render(v)+'</button>';
+  }).join('')+'</div>';
+}
+function ckClearCol(){ const cls=document.getElementById('ckClass').value; const kind=document.getElementById('ckKind').value; if(!cls)return; if(!confirm('「'+cls+'」 반의 '+CK_KINDS[kind].label+' 기록을 모두 지울까요?'))return; if(CHECK[cls]){ Object.keys(CHECK[cls]).forEach(nm=>{ if(CHECK[cls][nm])delete CHECK[cls][nm][kind]; }); ckSave(); } ckRender(); }
+function ckPrint(){ const cls=document.getElementById('ckClass').value; if(!cls){ alert('반을 먼저 선택하세요.'); return; } const roster=ckRoster(cls);
+  const rows=roster.map((nm,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(nm)+'</td><td></td><td></td><td></td></tr>').join('');
+  const w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>'+esc(cls)+' 학생 체크</title><style>body{font-family:sans-serif;padding:24px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #999;padding:8px;text-align:center;}h2{margin:0 0 12px;}</style></head><body><h2>'+esc(cls)+' 학생 체크표</h2><table><tr><th>번호</th><th>이름</th><th>작품 제출</th><th>수행평가</th><th>참여도</th></tr>'+rows+'</table></body></html>'); w.document.close(); w.print(); }
+
+/* ================= 수업 편집기 ================= */
+let LSDATA=null, LSEDIT=null, LSIDX=-1;
+const LS_GRADES=['중1','중2','중3'];
+function lsLoad(){ LSDATA=lsGet('tbook_lessons',null)||{'중1':[],'중2':[],'중3':[]}; LS_GRADES.forEach(g=>{ if(!Array.isArray(LSDATA[g]))LSDATA[g]=[]; }); }
+function lsSaveLs(){ lsSet('tbook_lessons',LSDATA); }
+function lsGrade(){ return document.getElementById('lsGrade').value; }
+function lsMsg(t){ const m=document.getElementById('lsMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
+function lsShow(){ if(!LSDATA)lsLoad(); lsRenderList(); }
+function lsRenderList(){ const g=lsGrade(); const arr=LSDATA[g]||[]; const box=document.getElementById('lsList');
+  if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">'+g+' 수업이 아직 없어요. ＋ 새 수업으로 만들어 주세요. (처음이면 먼저 ① 불러오기를 눌러 현재 수업을 가져오세요.)</p>'; return; }
+  box.innerHTML=arr.map((l,i)=>'<div class="row" style="align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:10px 0;">'
+    +'<span style="width:22px; color:var(--muted); font-weight:700;">'+(i+1)+'</span>'
+    +'<div style="flex:1;"><b>'+esc(l.title||'(제목 없음)')+'</b> <span style="color:var(--muted); font-size:13px;">· '+esc(l.unit||'')+'</span></div>'
+    +'<button class="mini" onclick="lsEdit('+i+')">수정</button>'
+    +'<button class="mini gray" onclick="lsDel('+i+')">삭제</button></div>').join('');
+}
+function lsBlank(){ return {id:'l'+Date.now(), unit:'', title:'', intro:'', goals:[], sections:[{h:'',body:''}], activity:{title:'',desc:''}, easy:'', think:[], viewing:[], quiz:[] }; }
+function lsNew(){ LSEDIT=lsBlank(); LSIDX=-1; lsRenderForm(); }
+function lsEdit(i){ LSEDIT=JSON.parse(JSON.stringify(LSDATA[lsGrade()][i])); if(!LSEDIT.sections)LSEDIT.sections=[]; if(!LSEDIT.quiz)LSEDIT.quiz=[]; if(!LSEDIT.activity)LSEDIT.activity={title:'',desc:''}; if(!LSEDIT.goals)LSEDIT.goals=[]; if(!LSEDIT.think)LSEDIT.think=[]; if(!LSEDIT.viewing)LSEDIT.viewing=[]; LSIDX=i; lsRenderForm(); }
+function lsDel(i){ if(!confirm('이 수업을 삭제할까요?'))return; LSDATA[lsGrade()].splice(i,1); lsSaveLs(); lsRenderList(); document.getElementById('lsForm').style.display='none'; }
+function lsCancel(){ document.getElementById('lsForm').style.display='none'; LSEDIT=null; }
+function lsLines(a){ return (a||[]).join('\n'); }
+function lsAddSection(){ LSEDIT.sections.push({h:'',body:''}); lsRenderForm(); }
+function lsDelSection(i){ LSEDIT.sections.splice(i,1); lsRenderForm(); }
+function lsAddQuiz(){ LSEDIT.quiz.push({q:'',opts:['','',''],ans:0}); lsRenderForm(); }
+function lsDelQuiz(i){ LSEDIT.quiz.splice(i,1); lsRenderForm(); }
+function lsRenderForm(){ const f=document.getElementById('lsForm'); f.style.display='block'; const e=LSEDIT;
+  const secHtml=e.sections.map((s,i)=>'<div style="border:1px solid var(--line); border-radius:10px; padding:10px; margin:8px 0;">'
+    +'<div class="row" style="align-items:center;"><input class="in" placeholder="소제목 (예: 1. 현대미술이란?)" value="'+esc(s.h)+'" oninput="LSEDIT.sections['+i+'].h=this.value" style="flex:1;"><button class="mini gray" onclick="lsDelSection('+i+')">삭제</button></div>'
+    +'<textarea class="in" rows="3" placeholder="설명 내용" oninput="LSEDIT.sections['+i+'].body=this.value" style="width:100%; margin-top:6px;">'+esc(s.body)+'</textarea></div>').join('');
+  const quizHtml=e.quiz.map((q,i)=>'<div style="border:1px solid var(--line); border-radius:10px; padding:10px; margin:8px 0;">'
+    +'<div class="row" style="align-items:center;"><input class="in" placeholder="문제" value="'+esc(q.q)+'" oninput="LSEDIT.quiz['+i+'].q=this.value" style="flex:1;"><button class="mini gray" onclick="lsDelQuiz('+i+')">삭제</button></div>'
+    +'<div class="row" style="margin-top:6px; gap:6px;">'+[0,1,2].map(k=>'<input class="in" placeholder="보기 '+(k+1)+'" value="'+esc((q.opts||[])[k]||'')+'" oninput="LSEDIT.quiz['+i+'].opts['+k+']=this.value" style="flex:1;">').join('')+'</div>'
+    +'<div class="row" style="margin-top:6px; align-items:center;"><span style="font-size:13px; color:var(--muted);">정답</span> <select class="in" style="width:auto;" onchange="LSEDIT.quiz['+i+'].ans=+this.value"><option value="0"'+(q.ans===0?' selected':'')+'>보기 1</option><option value="1"'+(q.ans===1?' selected':'')+'>보기 2</option><option value="2"'+(q.ans===2?' selected':'')+'>보기 3</option></select></div></div>').join('');
+  f.innerHTML='<h3>'+(LSIDX<0?'＋ 새 수업 만들기':'수업 수정하기')+' <span style="font-size:13px; color:var(--muted);">('+lsGrade()+')</span></h3>'
+    +'<label class="lbl">제목</label><input id="lfTitle" class="in" value="'+esc(e.title)+'" oninput="LSEDIT.title=this.value" placeholder="예: 현대미술, 무엇이 달라졌을까?">'
+    +'<label class="lbl">단원(주제)</label><input class="in" value="'+esc(e.unit)+'" oninput="LSEDIT.unit=this.value" placeholder="예: 현대미술">'
+    +'<label class="lbl">수업 소개</label><textarea class="in" rows="2" oninput="LSEDIT.intro=this.value" placeholder="이 수업에서 무엇을 하는지 한두 문장" style="width:100%;">'+esc(e.intro)+'</textarea>'
+    +'<label class="lbl">학습 목표 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.goals=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.goals))+'</textarea>'
+    +'<label class="lbl">설명 섹션</label>'+secHtml+'<button class="mini" onclick="lsAddSection()">＋ 섹션 추가</button>'
+    +'<label class="lbl" style="margin-top:14px;">🌟 오늘의 활동 — 제목</label><input class="in" value="'+esc(e.activity.title)+'" oninput="LSEDIT.activity.title=this.value" placeholder="예: 나만의 현대미술 작품 아이디어 만들기">'
+    +'<label class="lbl">오늘의 활동 — 설명</label><textarea class="in" rows="2" oninput="LSEDIT.activity.desc=this.value" style="width:100%;">'+esc(e.activity.desc)+'</textarea>'
+    +'<label class="lbl">쉬운 설명 (AI 선생님 "쉽게 설명")</label><textarea class="in" rows="2" oninput="LSEDIT.easy=this.value" style="width:100%;">'+esc(e.easy)+'</textarea>'
+    +'<label class="lbl">생각 질문 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.think=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.think))+'</textarea>'
+    +'<label class="lbl">감상 질문 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.viewing=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.viewing))+'</textarea>'
+    +'<label class="lbl">퀴즈</label>'+quizHtml+'<button class="mini" onclick="lsAddQuiz()">＋ 퀴즈 추가</button>'
+    +'<div class="row" style="margin-top:16px;"><button class="btn" onclick="lsFormSave()">💾 저장</button><button class="btn ghost" onclick="lsCancel()">취소</button></div>';
+}
+function lsFormSave(){ if(!LSEDIT.title.trim()){ alert('제목을 입력해 주세요.'); return; }
+  LSEDIT.sections=(LSEDIT.sections||[]).filter(s=>(s.h&&s.h.trim())||(s.body&&s.body.trim()));
+  LSEDIT.quiz=(LSEDIT.quiz||[]).filter(q=>q.q&&q.q.trim());
+  const g=lsGrade(); if(LSIDX<0) LSDATA[g].push(LSEDIT); else LSDATA[g][LSIDX]=LSEDIT;
+  lsSaveLs(); document.getElementById('lsForm').style.display='none'; LSEDIT=null; lsRenderList(); lsMsg('저장했어요. 다 됐으면 ② lessons.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
+}
+function lsPull(){ const base=(studentUrl()||'').replace(/\/?$/,'/'); lsMsg('불러오는 중...');
+  fetch(base+'lessons.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.lessons||d; let n=0; LS_GRADES.forEach(g=>{ if(Array.isArray(src[g])){ LSDATA[g]=src[g]; n+=src[g].length; } }); lsSaveLs(); lsRenderList(); lsMsg('현재 학생 사이트 수업 '+n+'개를 불러왔어요.'); })
+  .catch(()=>lsMsg('불러오지 못했어요. 아직 lessons.json이 학생 저장소에 없을 수 있어요. 그럴 땐 새 수업부터 만들면 돼요. (학생 사이트 주소는 설정에서 바꿀 수 있어요.)')); }
+function lsExport(){ dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요. 이 파일을 artclass 저장소(학생 사이트)에 그대로 올리면 학생 화면에 반영돼요.'); }
+
+/* ================= 화가 편집기 ================= */
+let ATDATA=null, ATEDIT=null, ATIDX=-1;
+const AT_CATS=['world','korea','design'];
+function atLoad(){ ATDATA=lsGet('tbook_artists',null)||{world:[],korea:[],design:[]}; AT_CATS.forEach(c=>{ if(!Array.isArray(ATDATA[c]))ATDATA[c]=[]; }); }
+function atSaveLs(){ lsSet('tbook_artists',ATDATA); }
+function atCat(){ return document.getElementById('atCat').value; }
+function atMsg(t){ const m=document.getElementById('atMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
+function atShow(){ if(!ATDATA)atLoad(); atRenderList(); }
+function atRenderList(){ const c=atCat(); const arr=ATDATA[c]||[]; const box=document.getElementById('atList');
+  if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">이 분류에 인물이 아직 없어요. ＋ 새 화가로 추가하거나 먼저 ① 불러오기를 눌러 주세요.</p>'; return; }
+  box.innerHTML=arr.map((a,i)=>'<div class="row" style="align-items:center; gap:10px; border-bottom:1px solid var(--line); padding:10px 0;">'
+    +'<div style="width:40px; height:40px; border-radius:8px; background:'+(a.thumb||'#ddd')+'; overflow:hidden; flex:none;">'+(a.img?'<img src="'+esc(a.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':'')+'</div>'
+    +'<div style="flex:1;"><b>'+esc(a.name||'(이름 없음)')+'</b> <span style="color:var(--muted); font-size:13px;">· '+esc(a.tag||'')+'</span></div>'
+    +'<button class="mini" onclick="atEdit('+i+')">수정</button>'
+    +'<button class="mini gray" onclick="atDel('+i+')">삭제</button></div>').join('');
+}
+function atBlank(){ return {id:'a'+Date.now(), name:'', tag:'', work:'', img:'', thumb:'linear-gradient(160deg,#c3b3f0,#8f7fe0)', desc:''}; }
+function atNew(){ ATEDIT=atBlank(); ATIDX=-1; atRenderForm(); }
+function atEdit(i){ ATEDIT=JSON.parse(JSON.stringify(ATDATA[atCat()][i])); ATIDX=i; atRenderForm(); }
+function atDel(i){ if(!confirm('이 인물을 삭제할까요?'))return; ATDATA[atCat()].splice(i,1); atSaveLs(); atRenderList(); document.getElementById('atForm').style.display='none'; }
+function atCancel(){ document.getElementById('atForm').style.display='none'; ATEDIT=null; }
+function atRenderForm(){ const f=document.getElementById('atForm'); f.style.display='block'; const e=ATEDIT;
+  f.innerHTML='<h3>'+(ATIDX<0?'＋ 새 화가 추가':'화가 수정하기')+'</h3>'
+    +'<label class="lbl">이름</label><input class="in" value="'+esc(e.name)+'" oninput="ATEDIT.name=this.value" placeholder="예: 빈센트 반 고흐">'
+    +'<label class="lbl">분류 표시(태그)</label><input class="in" value="'+esc(e.tag)+'" oninput="ATEDIT.tag=this.value" placeholder="예: 후기인상주의">'
+    +'<label class="lbl">대표작</label><input class="in" value="'+esc(e.work)+'" oninput="ATEDIT.work=this.value" placeholder="예: 대표작: 〈별이 빛나는 밤〉">'
+    +'<label class="lbl">이미지 주소(URL) — 비워두면 배경색만 보여요</label><input class="in" value="'+esc(e.img)+'" oninput="ATEDIT.img=this.value; atPrev();" placeholder="https://...">'
+    +'<label class="lbl">배경색(이미지 없을 때) — 색 이름이나 그라데이션</label><input class="in" value="'+esc(e.thumb)+'" oninput="ATEDIT.thumb=this.value; atPrev();" placeholder="예: linear-gradient(160deg,#c3b3f0,#8f7fe0)">'
+    +'<label class="lbl">설명</label><textarea class="in" rows="3" oninput="ATEDIT.desc=this.value" style="width:100%;" placeholder="학생에게 보여줄 소개글">'+esc(e.desc)+'</textarea>'
+    +'<label class="lbl">미리보기</label><div class="row" style="align-items:center; gap:10px;"><div id="atPrevBox" style="width:70px; height:70px; border-radius:12px; background:'+(e.thumb||'#ddd')+'; overflow:hidden;">'+(e.img?'<img src="'+esc(e.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':'')+'</div></div>'
+    +'<div class="row" style="margin-top:16px;"><button class="btn" onclick="atFormSave()">💾 저장</button><button class="btn ghost" onclick="atCancel()">취소</button></div>';
+}
+function atPrev(){ const b=document.getElementById('atPrevBox'); if(!b)return; b.style.background=ATEDIT.thumb||'#ddd'; b.innerHTML=ATEDIT.img?'<img src="'+esc(ATEDIT.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':''; }
+function atFormSave(){ if(!ATEDIT.name.trim()){ alert('이름을 입력해 주세요.'); return; } if(!ATEDIT.thumb.trim())ATEDIT.thumb='linear-gradient(160deg,#c3b3f0,#8f7fe0)'; if(!ATEDIT.desc.trim())ATEDIT.desc=ATEDIT.name;
+  const c=atCat(); if(ATIDX<0) ATDATA[c].push(ATEDIT); else ATDATA[c][ATIDX]=ATEDIT;
+  atSaveLs(); document.getElementById('atForm').style.display='none'; ATEDIT=null; atRenderList(); atMsg('저장했어요. 다 됐으면 ② artists.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
+}
+function atPull(){ const base=(studentUrl()||'').replace(/\/?$/,'/'); atMsg('불러오는 중...');
+  fetch(base+'artists.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.artists||d; let n=0; AT_CATS.forEach(c=>{ if(Array.isArray(src[c])){ ATDATA[c]=src[c]; n+=src[c].length; } }); atSaveLs(); atRenderList(); atMsg('현재 학생 사이트 화가 '+n+'명을 불러왔어요.'); })
+  .catch(()=>atMsg('불러오지 못했어요. 아직 artists.json이 학생 저장소에 없을 수 있어요. 그럴 땐 새 화가부터 추가하면 돼요.')); }
+function atExport(){ dl('artists.json',{ updated:'선생님 편집', artists:ATDATA }); atMsg('artists.json 파일을 받았어요. 이 파일을 artclass 저장소(학생 사이트)에 그대로 올리면 학생 화면에 반영돼요.'); }
 </script>
 </body>
 </html>
