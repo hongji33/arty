@@ -330,9 +330,15 @@
         <h2 class="title">🎲 랜덤 뽑기</h2>
         <p class="lead">발표자나 모둠을 랜덤으로 정해요. 이름을 넣거나 자리배치의 반 명단을 불러올 수 있어요.</p>
         <div class="card">
-          <label class="lbl">이름 명단 (한 줄에 한 명)</label>
-          <textarea id="pickRoster" rows="4" class="in" style="width:100%;" placeholder="김미술&#10;이그림"></textarea>
-          <div class="row" style="margin-top:8px;"><button class="mini gray" onclick="pickLoadClass()">📋 자리배치 반 명단 불러오기</button></div>
+          <label class="lbl">🏫 반 선택 — 선택한 반 안에서만 랜덤으로 뽑아요</label>
+          <div id="pickClassTabs" class="row" style="margin-bottom:8px;"></div>
+          <div class="row" style="margin-bottom:8px;">
+            <span id="pickClassHint" style="font-size:12.5px;color:var(--muted);"></span>
+            <button class="mini gray" onclick="pickRefreshClasses()">↻ 반 목록 새로고침</button>
+          </div>
+          <label class="lbl">이름 명단 (선택한 반의 명단)</label>
+          <textarea id="pickRoster" rows="4" class="in" style="width:100%;" placeholder="먼저 위에서 반을 선택하세요."></textarea>
+          <div class="row" style="margin-top:8px;"><button class="mini gray" onclick="pickLoadClass()">📋 선택한 반 명단 불러오기</button></div>
           <div class="row" style="margin-top:12px;">
             <button class="btn warm" onclick="pickOne()">🎯 한 명 뽑기 (발표자)</button>
             <button class="btn ghost" onclick="pickGroups()">👥 모둠으로 나누기</button>
@@ -590,6 +596,7 @@ function go(tab, btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
   document.getElementById('page-'+tab).classList.add('show');
   if(tab==='seat') seatRenderAll();
+  if(tab==='picker') pickRefreshClasses();
   if(tab==='materials') matRender();
   if(tab==='checklist') clRender();
   if(tab==='planner') planRender();
@@ -726,8 +733,47 @@ function clRender(){
 }
 
 /* ================= 랜덤 뽑기 ================= */
+let PICK_CLASS='';
+function pickClasses(){
+  if(!SEAT) seatLoad();
+  const my=getMyClasses();
+  const seatClasses=Object.keys(SEAT.classes||{});
+  return my.length ? my.filter(c=>SEAT.classes[c]) : seatClasses;
+}
+function pickRefreshClasses(){
+  if(!SEAT) seatLoad();
+  const classes=pickClasses();
+  const tabs=document.getElementById('pickClassTabs');
+  if(!tabs)return;
+  if(!classes.length){
+    PICK_CLASS='';
+    tabs.innerHTML='<span style="font-size:13px;color:var(--muted);">등록된 반이 없어요. 설정에서 담당 반을 먼저 등록하세요.</span>';
+    document.getElementById('pickClassHint').textContent='';
+    return;
+  }
+  if(!PICK_CLASS || !classes.includes(PICK_CLASS)) PICK_CLASS=classes[0];
+  tabs.innerHTML=classes.map(c=>'<button class="seg'+(c===PICK_CLASS?' sel':'')+'" onclick="pickSelectClass(\''+c.replace(/'/g,"\'")+ '\')">'+esc(c)+'</button>').join('');
+  const c=SEAT.classes[PICK_CLASS];
+  document.getElementById('pickClassHint').textContent=PICK_CLASS+' · '+((c&&c.students)||[]).length+'명';
+  pickLoadClass(false);
+}
+function pickSelectClass(cls){
+  PICK_CLASS=cls;
+  pickRefreshClasses();
+}
+function pickLoadClass(showAlert=true){
+  if(!SEAT) seatLoad();
+  if(!PICK_CLASS) pickRefreshClasses();
+  const c=SEAT.classes[PICK_CLASS];
+  const st=(c&&c.students)||[];
+  if(!st.length){
+    if(showAlert) alert(PICK_CLASS ? PICK_CLASS+' 반에 저장된 명단이 없어요.' : '먼저 반을 선택하세요.');
+    document.getElementById('pickRoster').value='';
+    return;
+  }
+  document.getElementById('pickRoster').value=st.join('\n');
+}
 function pickNames(){ return document.getElementById('pickRoster').value.split('\n').map(s=>s.trim()).filter(Boolean); }
-function pickLoadClass(){ if(!SEAT) seatLoad(); const st=(cur().students||[]); if(!st.length){ alert('자리배치에 저장된 명단이 없어요.'); return; } document.getElementById('pickRoster').value=st.join('\n'); }
 function pickOne(){ const n=pickNames(); const out=document.getElementById('pickResult'); document.getElementById('pickGroupsOut').innerHTML=''; if(!n.length){ out.textContent='이름을 먼저 넣어주세요'; return; }
   let cnt=0; const iv=setInterval(()=>{ out.textContent=n[Math.floor(Math.random()*n.length)]; if(++cnt>12){ clearInterval(iv); out.textContent='🎉 '+n[Math.floor(Math.random()*n.length)]; } },70); }
 function pickGroups(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='👥 모둠 편성'; const k=Math.max(2,+document.getElementById('pickGroupN').value||4); if(!n.length){ out.innerHTML=''; return; }
