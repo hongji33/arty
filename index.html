@@ -594,6 +594,7 @@ function changePw(){
 /* ================= 네비게이션 ================= */
 function navBtn(tab){ return document.querySelector('.nav button[data-tab="'+tab+'"]'); }
 function go(tab, btn){
+  if(typeof syncClassRosterEverywhere==='function') syncClassRosterEverywhere();
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   (btn||navBtn(tab)).classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
@@ -656,10 +657,17 @@ function seatRenderGrid(){
     grid.appendChild(box); }
 }
 function seatClick(i){ if(seatSel===null) seatSel=i; else if(seatSel===i) seatSel=null; else { const c=cur(); const t=c.seats[seatSel]||null; c.seats[seatSel]=c.seats[i]||null; c.seats[i]=t; seatSel=null; seatSave(); } seatRenderGrid(); }
-function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderAll(); if(typeof pickRenderClasses==='function')pickRenderClasses(); }
+function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderAll(); syncClassRosterEverywhere(); }
 function seatAddClass(){ const el=document.getElementById('newClass'); const n=(el.value||'').trim(); if(!n)return; if(!SEAT.classes[n]) SEAT.classes[n]={students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}}; SEAT.current=n; el.value=''; seatSave(); seatRenderAll(); }
 function seatDelClass(){ if(Object.keys(SEAT.classes).length<=1){ alert('반이 하나뿐이라 삭제할 수 없어요.'); return; } if(!confirm("'"+SEAT.current+"' 반을 삭제할까요?"))return; delete SEAT.classes[SEAT.current]; SEAT.current=Object.keys(SEAT.classes)[0]; seatSave(); seatRenderAll(); }
-function seatSaveRoster(){ cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean); setAbsent(SEAT.current,getAbsent(SEAT.current).filter(n=>cur().students.includes(n))); seatSave('명단을 저장했어요 ('+cur().students.length+'명).'); seatRenderPairs(); if(typeof pickRenderClasses==='function')pickRenderClasses(); }
+function seatSaveRoster(){
+  cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  setAbsent(SEAT.current,getAbsent(SEAT.current).filter(n=>cur().students.includes(n)));
+  seatSave('명단을 저장했어요 ('+cur().students.length+'명).');
+  seatRenderPairs();
+  seatRenderAll();
+  syncClassRosterEverywhere();
+}
 function seatSetSize(v){ cur().groupSize=v; seatResize(); seatSave(); seatRenderAll(); }
 function seatRenderPairs(){
   const c=cur(); const opts='<option value="">학생 선택</option>'+(c.students||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
@@ -1092,7 +1100,7 @@ function ckLoad(){ CHECK=lsGet('tbook_check',null)||{}; }
 function ckSave(){ lsSet('tbook_check',CHECK); }
 function ckClasses(){ const my=getMyClasses(); if(my.length)return my; if(!SEAT)seatLoad(); return Object.keys(SEAT.classes); }
 function ckRoster(cls){ if(!SEAT)seatLoad(); const c=SEAT.classes[cls]; return (c&&c.students)?c.students.filter(Boolean):[]; }
-function ckShow(){ if(!CHECK)ckLoad(); const sel=document.getElementById('ckClass'); const cls=ckClasses();
+function ckShow(){ if(!SEAT)seatLoad(); if(!CHECK)ckLoad(); const sel=document.getElementById('ckClass'); const cls=ckClasses();
   sel.innerHTML=cls.length?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''):'<option value="">(반 없음)</option>';
   ckRender();
 }
@@ -1326,3 +1334,18 @@ function atExport(){ const s=SITES[getTarget()].short; dl('artists.json',{ updat
 </script>
 </body>
 </html>
+
+<script>
+document.addEventListener('classRosterUpdated',function(){
+  if(typeof pickRenderClasses==='function') pickRenderClasses();
+});
+</script>
+
+<script>
+function autoSyncClassRoster(){
+  if(typeof syncClassRosterEverywhere==='function') syncClassRosterEverywhere();
+}
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden) autoSyncClassRoster();
+});
+</script>
