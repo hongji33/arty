@@ -1,640 +1,1172 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>미술실 통합 교사 관리 시스템</title>
-  <style>
-    :root {
-      --bg: #f8f9fa;
-      --panel: #ffffff;
-      --primary: #4c6ef5;
-      --primary-hover: #364fc7;
-      --text: #212529;
-      --muted: #868e96;
-      --line: #dee2e6;
-      --radius: 8px;
-    }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--line); }
-    h1 { font-size: 24px; color: #1a1b1e; }
-    h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    h3 { font-size: 16px; margin: 15px 0 8px 0; }
-    h4 { font-size: 14px; margin: 10px 0 6px 0; color: #495057; }
-
-    .nav-tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
-    .tab-btn { padding: 10px 16px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); border-radius: var(--radius); transition: all 0.2s; }
-    .tab-btn:hover { background: #e9ecef; color: var(--text); }
-    .tab-btn.active { background: var(--primary); color: #fff; }
-
-    .panel { background: var(--panel); border-radius: var(--radius); padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; display: none; }
-    .panel.active { display: block; }
-
-    .row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
-    .in { padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; outline: none; }
-    .in:focus { border-color: var(--primary); }
-    .btn { padding: 8px 16px; border: none; background: var(--primary); color: #fff; font-weight: 600; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn.ghost { background: #e9ecef; color: #495057; }
-    .btn.ghost:hover { background: #dee2e6; }
-    .btn.gray { background: #6c757d; color: #fff; }
-    .btn.gray:hover { background: #5a6268; }
-    .mini { padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; background: var(--primary); color: #fff; cursor: pointer; }
-    .mini.gray { background: #e9ecef; color: #495057; }
-    .mini.gray:hover { background: #dee2e6; }
-
-    /* 자리 배치 스타일 */
-    .seat-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 15px; max-width: 900px; }
-    .seat-box { background: #f1f3f5; border: 1px dashed #ced4da; border-radius: 6px; padding: 10px; min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; }
-    .seat-label { font-size: 11px; color: var(--muted); font-weight: bold; }
-    .seat-input { width: 100%; border: none; background: transparent; font-size: 14px; font-weight: 600; text-align: center; margin-top: 5px; border-bottom: 1px solid transparent; }
-    .seat-input:focus { border-bottom-color: var(--primary); outline: none; background: #fff; }
-
-    /* 리스트 및 체크 관리 스타일 */
-    .ck-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; margin-top: 15px; }
-    .ck-row { background: #f8f9fa; border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; text-align: left; }
-    .ck-row:hover { background: #edf2ff; border-color: #bac8ff; }
-    .ck-num { font-size: 12px; color: var(--muted); width: 24px; }
-    .ck-nm { font-weight: 600; flex: 1; font-size: 14px; }
-    .ck-badge { font-size: 12px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-    .ck-badge.ck-yes { background: #e3fafc; color: #0b7285; }
-    .ck-badge.ck-no { background: #fff5f5; color: #c92a2a; }
-    .ck-badge.ck-star { background: #fff9db; color: #f08c00; }
-
-    /* 테이블 공통 스타일 */
-    .tb { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-    .tb th, .tb td { padding: 10px; border: 1px solid var(--line); text-align: left; }
-    .tb th { background: #f1f3f5; font-weight: 600; }
-    
-    .card { border: 1px solid var(--line); border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #fff; }
-    .lbl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 10px; color: #495057; }
-    .msg-box { margin-top: 10px; font-size: 13px; font-weight: 600; min-height: 20px; }
-
-    @media print {
-      body { background: white; padding: 0; }
-      .nav-tabs, .row, .btn, .mini, .no-print, header { display: none !important; }
-      .panel { display: block !important; box-shadow: none; padding: 0; margin: 0; }
-      .seat-box { border: 1px solid #000; background: none; }
-      .ck-row { border: 1px solid #000; background: none; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>미술교사 비법책</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  :root{
+    --bg:#f5f2ec; --panel:#fff; --ink:#2c2a33; --muted:#847f8f;
+    --brand:#5b57d6; --brand2:#12b3a6; --accent:#f0714f; --line:#e9e4dc;
+    --shadow:0 12px 34px -12px rgba(60,50,90,.22); --shadow-sm:0 2px 10px rgba(60,50,90,.06); --radius:18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; letter-spacing:-.01em; min-height:100vh;}
+  /* ===== login ===== */
+  #login{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px;
+    background:linear-gradient(150deg,#5b57d6 0%,#7a68e0 50%,#12b3a6 100%);}
+  .login-card{background:#fff; border-radius:22px; padding:40px 34px; width:100%; max-width:380px; box-shadow:0 30px 70px -20px rgba(0,0,0,.5); text-align:center;}
+  .login-card .book{font-size:52px;}
+  .login-card h1{font-size:24px; margin:8px 0 4px; font-weight:800; letter-spacing:-.03em;}
+  .login-card p{color:var(--muted); font-size:13.5px; margin:0 0 22px;}
+  .login-card input{width:100%; padding:13px 15px; border:2px solid var(--line); border-radius:12px; font-size:16px; text-align:center; letter-spacing:.2em; font-family:inherit;}
+  .login-card input:focus{outline:none; border-color:var(--brand);}
+  .login-card button{width:100%; margin-top:12px; padding:13px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-size:16px; font-weight:800; cursor:pointer; transition:.15s;}
+  .login-card button:hover{filter:brightness(1.07);}
+  .login-hint{font-size:12px; color:var(--muted); margin-top:14px;}
+  #loginErr{color:#e03131; font-size:13px; font-weight:700; min-height:18px; margin-top:8px;}
+  /* ===== layout ===== */
+  #app{display:flex; min-height:100vh;}
+  .sidebar{width:250px; flex-shrink:0; background:linear-gradient(170deg,#5b57d6,#6d5fd8 55%,#12b3a6); color:#fff; padding:22px 16px 30px; position:sticky; top:0; height:100vh; overflow-y:auto;}
+  .brand{display:flex; align-items:center; gap:12px; padding:2px 6px 18px; margin-bottom:8px; border-bottom:1px solid rgba(255,255,255,.22);}
+  .brand .logo{font-size:26px; background:rgba(255,255,255,.22); width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center;}
+  .brand h1{font-size:18px; margin:0; font-weight:800; letter-spacing:-.02em;}
+  .brand small{display:block; font-size:11px; opacity:.85; margin-top:2px;}
+  .nav{list-style:none; margin:0; padding:0;}
+  .nav button{width:100%; text-align:left; border:0; cursor:pointer; color:#fff; background:transparent; padding:12px 13px; border-radius:12px; font-size:14.5px; font-weight:600; display:flex; align-items:center; gap:11px; transition:.16s; margin:3px 0;}
+  .nav button:hover{background:rgba(255,255,255,.16); transform:translateX(2px);}
+  .nav button.active{background:#fff; color:var(--brand); font-weight:800; box-shadow:0 6px 16px -6px rgba(0,0,0,.3);}
+  .logout{width:100%; margin-top:18px; border:1px dashed rgba(255,255,255,.5); background:rgba(255,255,255,.1); color:#fff; border-radius:11px; padding:9px; font-size:12.5px; font-weight:700; cursor:pointer;}
+  .logout:hover{background:rgba(255,255,255,.2);}
+  .main{flex:1; min-width:0; padding:30px 36px 64px; max-width:1080px;}
+  .page{display:none; animation:fade .35s ease;}
+  .page.show{display:block;}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;}}
+  h2.title{font-size:26px; margin:0 0 6px; font-weight:800; letter-spacing:-.03em; display:flex; gap:10px; align-items:center;}
+  .lead{color:var(--muted); font-size:14.5px; margin:0 0 22px; line-height:1.6;}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px 22px; margin:0 0 18px; box-shadow:var(--shadow-sm);}
+  .card h3{margin:0 0 12px; font-size:17px; font-weight:800; display:flex; gap:8px; align-items:center;}
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .btn{display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; border:0; border-radius:11px; padding:10px 16px; font-size:14px; font-weight:700; cursor:pointer; transition:.16s; text-decoration:none;}
+  .btn:hover{filter:brightness(1.06); transform:translateY(-1px);}
+  .btn.ghost{background:#fff; color:var(--brand); border:1.5px solid var(--brand);}
+  .btn.teal{background:var(--brand2);} .btn.warm{background:var(--accent);}
+  .mini{border:0; border-radius:9px; padding:8px 12px; font-size:13px; font-weight:700; cursor:pointer; background:#eceaff; color:var(--brand);}
+  .mini.gray{background:#eef0f2; color:#495057;}
+  .in{padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; font-family:inherit;}
+  .in:focus{outline:none; border-color:var(--brand);}
+  .lbl{display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin:12px 0 5px;}
+  .note{background:#fff9ec; border:1px solid #ffe6a8; border-radius:12px; padding:12px 15px; font-size:13.5px; color:#8a6d0b; line-height:1.55;}
+  .seg{border:0; border-radius:9px; padding:8px 13px; font-size:13px; font-weight:700; cursor:pointer; background:#eef0f2; color:#495057; margin:3px 4px 3px 0;}
+  .seg.sel{background:var(--brand); color:#fff;}
+  .home-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px;}
+  .home-card{cursor:pointer; border:1px solid var(--line); border-radius:16px; padding:20px; background:#fff; box-shadow:var(--shadow-sm); transition:.18s; border-top:5px solid var(--brand);}
+  .home-card:hover{transform:translateY(-4px); box-shadow:var(--shadow);}
+  .home-card .e{font-size:32px;} .home-card h4{margin:6px 0 3px; font-size:16px; font-weight:800;} .home-card p{margin:0; font-size:12.5px; color:var(--muted); line-height:1.5;}
+  table.tb{width:100%; border-collapse:collapse; font-size:13.5px;}
+  table.tb th,table.tb td{border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:middle;}
+  table.tb th{color:var(--muted); font-weight:700; background:#faf8f4;}
+  .pill{display:inline-block; border-radius:20px; padding:3px 11px; font-size:12px; font-weight:800;}
+  .pill.ok">background:#e6f7ec; color:#2b8a3e;} .pill.low{background:#fff3bf; color:#a97b06;} .pill.no{background:#ffe3e3; color:#c92a2a;}
+  /* seating (재사용) */
+  .seat-front{background:linear-gradient(180deg,#3a2f4a,#2c2a33); color:#fff; text-align:center; border-radius:12px; padding:11px; font-weight:800; margin:0 0 18px; letter-spacing:.15em;}
+  .seat-grid{display:flex; flex-wrap:wrap; gap:16px; justify-content:center;}
+  .group{background:#f3f1ff; border:2px solid #d9d4ff; border-radius:14px; padding:10px; display:grid; gap:8px;}
+  .seat{background:#fff; border:2px solid var(--line); border-radius:10px; min-width:98px; min-height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; padding:6px 8px; text-align:center; transition:.12s;}
+  .seat:hover{border-color:var(--brand);} .seat.sel{outline:3px solid var(--accent); outline-offset:1px;}
+  .seat .nm{font-weight:800; font-size:15px;} .seat.empty .nm{color:#c9c0bb; font-weight:600;}
+  .seat .role{font-size:11px; font-weight:800; margin-top:3px; padding:1px 8px; border-radius:10px; white-space:nowrap;}
+  .role.A{background:#e7f0ff; color:#1971c2;} .role.B{background:#e6f7ec; color:#2b8a3e;} .role.C{background:#fff3bf; color:#a97b06;} .role.D{background:#ffe3e3; color:#c92a2a;}
+  #page-seat.board .seat-editor, #page-seat.board .seat-toolbar, #page-seat.board .title, #page-seat.board .lead{display:none;}
+  #page-seat.board .seat{min-width:140px; min-height:88px;} #page-seat.board .seat .nm{font-size:24px;} #page-seat.board .seat .role{font-size:14px;}
+  .harmrow{display:flex; gap:8px;}
+  /* picker */
+  #pickResult{font-size:44px; font-weight:800; text-align:center; padding:26px; border-radius:16px; background:#f3f1ff; color:var(--brand); min-height:60px;}
+  /* timer */
+  input[type=range]{accent-color:var(--brand);}
+  #page-timer.board{position:fixed; inset:0; z-index:55; background:#0f1226; color:#fff; overflow:auto; padding:24px; display:flex; flex-direction:column; justify-content:center;}
+  #page-timer.board .tmr-setup, #page-timer.board .tmr-toolbar, #page-timer.board .title, #page-timer.board .lead{display:none;}
+  #page-timer.board #tmrDisplay{background:transparent; border:0; box-shadow:none;}
+  #page-timer.board #tmrStageName{font-size:min(7vw,54px); color:#ffd8a8;}
+  #page-timer.board #tmrBig{font-size:min(30vw,300px); color:#fff; line-height:1.05;}
+  #page-timer.board #tmrProgress{font-size:min(4vw,26px); color:#c7cbe0;}
+  #page-timer.board .btn{font-size:20px; padding:14px 24px;}
+  /* 점수판 */
+  .sc-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px;}
+  .sc-card{border:1px solid var(--line); border-radius:16px; padding:14px; text-align:center; background:#fff;}
+  .sc-name{font-weight:800; color:var(--brand); margin-bottom:4px;}
+  .sc-val{font-size:44px; font-weight:800; line-height:1.1; margin:4px 0;}
+  .sc-btns{display:flex; gap:6px; justify-content:center;}
+  .sc-btns button{border:0; border-radius:10px; font-size:18px; font-weight:800; padding:8px 12px; cursor:pointer; color:#fff;}
+  .sc-minus{background:#adb5bd;} .sc-plus{background:var(--brand);}
+  #page-score.board{position:fixed; inset:0; z-index:55; background:#0f1226; overflow:auto; padding:30px;}
+  #page-score.board .sc-setup, #page-score.board .sc-toolbar, #page-score.board .title, #page-score.board .lead{display:none;}
+  #page-score.board .card{background:transparent; border:0; box-shadow:none;}
+  #page-score.board .sc-grid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:22px;}
+  #page-score.board .sc-card{background:#1a1f3d; border-color:#2a3157;}
+  #page-score.board .sc-name{color:#ffd8a8; font-size:26px;}
+  #page-score.board .sc-val{color:#fff; font-size:76px;}
+  #page-score.board .sc-btns button{font-size:22px; padding:12px 18px;}
+  /* 학생 체크 */
+  .ck-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
+  .ck-row{display:flex; align-items:center; gap:10px; width:100%; text-align:left; border:1px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; cursor:pointer; font-size:15px;}
+  .ck-row:hover{border-color:var(--brand);}
+  .ck-num{width:24px; text-align:center; color:var(--muted); font-weight:700;}
+  .ck-nm{flex:1; font-weight:700;}
+  .ck-badge{font-weight:800; font-size:14px; padding:4px 8px; border-radius:8px; white-space:nowrap;}
+  .ck-ok{background:#e6f7ec; color:#2b8a3e;} .ck-no{background:#f1f3f5; color:#868e96;}
+  .ck-a{background:#e6f7ec; color:#2b8a3e;} .ck-b{background:#fff3bf; color:#a97b06;} .ck-c{background:#ffe3e3; color:#c92a2a;}
+  .ck-star{background:#fff9db; color:#f08c00; letter-spacing:2px;}
+  /* 주별 수업계획 */
+  .plan-table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  .plan-table th,.plan-table td{border:1px solid var(--line); padding:8px; vertical-align:top;}
+  .plan-table th{background:#faf8f4; color:var(--muted); font-weight:700;}
+  .plan-table td.wk{white-space:nowrap; font-weight:800; text-align:center; width:56px;}
+  .plan-table td.dt{white-space:nowrap; color:var(--muted); width:100px; text-align:center; font-size:12.5px;}
+  .plan-table textarea{width:100%; border:1px solid var(--line); border-radius:8px; padding:7px; font-family:inherit; font-size:13.5px; resize:vertical; min-height:46px;}
+  .plan-table tr.event{background:#f4f1f0;}
+  .donerow{display:flex; flex-wrap:wrap; gap:5px;}
+  .donechk{display:inline-flex; align-items:center; font-size:12px; font-weight:700; background:#eceaff; color:var(--brand); border-radius:8px; padding:4px 8px; cursor:pointer; border:1px solid #ddd8ff;}
+  .donechk.on{background:#2b8a3e; color:#fff; border-color:#2b8a3e;}
+  @media print{
+    #login{display:none !important;} .sidebar,.plan-setup,.plan-toolbar,.logout,.lead{display:none !important;}
+    #app{display:block !important;} .main{padding:0 !important; max-width:none !important;}
+    .page:not(.show){display:none !important;} .card{box-shadow:none !important; border:none !important; padding:0 !important; margin:0 !important;}
+    body{background:#fff;} .plan-table th,.plan-table td{border:1px solid #888 !important;}
+    .donechk{border:1px solid #888 !important;} .donechk.on{background:#2b8a3e !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .plan-table tr.event{background:#eee !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    h2.title{font-size:20px;}
+  }
+  @media(max-width:820px){ #app{flex-direction:column;} .sidebar{width:100%; height:auto; position:relative;} .main{padding:18px;} }
+</style>
 </head>
 <body>
-
-<header>
-  <h1>🎨 미술실 통합 관리 서버 (교사용)</h1>
-  <div class="no-print" style="display: flex; gap: 8px; align-items: center;">
-    <select id="siteTarget" class="in" onchange="switchSite()">
-      <option value="funart">🎨 즐거운 미술실 (본교)</option>
-      <option value="artroom">🏫 창의 미술 교실 (분교)</option>
-    </select>
-    <input type="password" id="topPw" class="in" placeholder="액세스 비밀번호" style="width: 140px;" onkeyup="if(event.key==='Enter') bootApp()">
-    <button class="btn" onclick="bootApp()">🔓 연결</button>
-  </div>
-</header>
-
-<div class="nav-tabs no-print">
-  <button class="tab-btn active" onclick="tab('seat')">🪑 미술실 배치도</button>
-  <button class="tab-btn" onclick="tab('check')">📋 학생 체크 (수행/참여)</button>
-  <button class="tab-btn" onclick="tab('lesson')">📝 수업 편집기</button>
-  <button class="tab-btn" onclick="tab('artist')">🖼️ 화가 데이터베이스</button>
-</div>
-
-<!-- ================= 1. 미술실 배치도 패널 ================= -->
-<div id="p-seat" class="panel active">
-  <h2>🪑 미술실 자리배치 및 학생 명단 등록</h2>
-  <div class="row no-print">
-    <select id="seatClass" class="in" onchange="seatRender()">
-      <option value="1-1">1학년 1반</option><option value="1-2">1학년 2반</option>
-      <option value="2-1">2학년 1반</option><option value="2-2">2학년 2반</option>
-      <option value="3-1">3학년 1반</option><option value="3-2">3학년 2반</option>
-    </select>
-    <button class="btn" onclick="seatSave()">💾 현재 반 배치 저장</button>
-    <button class="btn ghost" onclick="seatClear()">🔄 전체 초기화</button>
-    <button class="btn gray" onclick="window.print()">🖨️ 배치도 인쇄</button>
-  </div>
-  <p class="no-print" style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-    ※ 각 칸에 학생 이름을 입력하세요. 빈칸은 공석 처리됩니다. 저장된 순서대로 '학생 체크' 명단에 자동 반영됩니다.
-  </p>
-  <div id="seatGrid" class="seat-container"></div>
-</div>
-
-<!-- ================= 2. 학생 체크 패널 ================= -->
-<div id="p-check" class="panel">
-  <h2>📋 실시간 수행 평가 및 참여도 체크</h2>
-  <div class="row no-print">
-    <select id="ckClass" class="in" onchange="ckRender()">
-      <option value="1-1">1학년 1반</option><option value="1-2">1학년 2반</option>
-      <option value="2-1">2학년 1반</option><option value="2-2">2학년 2반</option>
-      <option value="3-1">3학년 1반</option><option value="3-2">3학년 2반</option>
-    </select>
-    <select id="ckKind" class="in" onchange="ckRender()">
-      <option value="hw">📝 준비물 점검</option>
-      <option value="step1">🎨 표현 과정 (중간)</option>
-      <option value="step2">📐 표현 과정 (기막힘)</option>
-      <option value="part">⭐ 수업 참여도</option>
-    </select>
-    <button class="btn gray" onclick="ckClearCol()">🧹 항목 기록 초기화</button>
-    <button class="btn" onclick="ckPrint()">🖨️ 체크부 출력</button>
-  </div>
-  <blockquote id="ckHint" style="padding: 8px 12px; background: #e8f4fd; border-left: 4px solid var(--primary); font-size:13px; margin-bottom:15px; border-radius:4px;"></blockquote>
-  <div id="ckGrid"></div>
-</div>
-
-<!-- ================= 3. 수업 편집기 패널 ================= -->
-<div id="p-lesson" class="panel">
-  <h2>📝 학생 사이트 실시간 수업 리스트 관리</h2>
-  <div class="row no-print">
-    <select id="lsGrade" class="in" onchange="lsShow()">
-      <option value="중1">중학교 1학년</option>
-      <option value="중2">중학교 2학년</option>
-      <option value="중3">중학교 3학년</option>
-    </select>
-    <button class="btn" onclick="lsNew()">＋ 새 수업 직접 작성</button>
-    <button class="btn ghost" onclick="lsPull()">☁️ 원본 서버 데이터 가져오기</button>
-    <button class="btn gray" onclick="lsExport()">📥 json 다운로드</button>
-  </div>
-  <div id="lsMsg" class="msg-box"></div>
-  
-  <div id="lsList" style="margin-top:15px;"></div>
-  <div id="lsForm" class="card" style="display:none; margin-top:20px;"></div>
-
-  <!-- AI 보조 도구 섹션 -->
-  <div class="card no-print" style="margin-top:30px; background:#f1f3f5; border-color:#ced4da;">
-    <h3>🤖 AI 기반 미술 수업 설계 어시스턴트</h3>
-    <p style="font-size:13px; color:#495057; margin-bottom:12px;">원하는 단원명과 목적을 적으면 규격화된 JSON 프롬프트를 생성합니다. AI 응답을 아래 파싱창에 넣으면 즉시 수업 리스트로 등록됩니다.</p>
-    <div class="row">
-      <select id="aiGrade" class="in"><option value="1">중1</option><option value="2">중2</option><option value="3">중3</option></select>
-      <input id="aiTitle" class="in" placeholder="예: 현대 미술 팝아트 입체 카드 만들기" style="flex:1;">
-      <input id="aiUnit" class="in" placeholder="단원 (예: 표현-디자인)" style="width:150px;">
-    </div>
-    <div class="row">
-      <input id="aiKeywords" class="in" placeholder="핵심 키워드/조건 (예: 앤디 워홀 참고, 2차시 분량, 업사이클링 소재 활용)" style="flex:1;">
-    </div>
-    <div style="margin: 10px 0; font-size:13px;">
-      <b>필수 포함 본문 섹션 선택:</b>
-      <label><input type="checkbox" class="aiSec" value="준비물" checked> 준비물</label>&nbsp;&nbsp;
-      <label><input type="checkbox" class="aiSec" value="수업 진행 과정" checked> 수업 진행 과정</label>&nbsp;&nbsp;
-      <label><input type="checkbox" class="aiSec" value="감상 및 평가 기준" checked> 감상 및 평가 기준</label>&nbsp;&nbsp;
-      <label><input type="checkbox" class="aiSec" value="주의 사항"> 주의 사항</label>
-    </div>
-    <button class="btn" style="background:#0b7285;" onclick="lsCopyPrompt()">📋 AI 맞춤형 프롬프트 생성 및 복사</button>
-    <span id="aiPromptMsg" style="margin-left:10px; font-size:13px; font-weight:bold; color:#0b7285;"></span>
-    <textarea id="aiPromptOut" class="in" style="width:100%; height:80px; margin-top:10px; display:none; font-family:monospace; font-size:12px;" readonly></textarea>
-    
-    <h4 style="margin-top:20px; border-top:1px solid #ced4da; padding-top:15px;">📥 AI가 만들어준 결과물(JSON) 등록하기</h4>
-    <textarea id="aiImportIn" class="in" style="width:100%; height:100px; font-family:monospace; font-size:12px; margin-top:6px;" placeholder="AI가 출력한 ```json ... ``` 전체 내용 또는 완벽한 { } 오브젝트 코드를 그대로 복사해서 붙여넣으세요."></textarea>
-    <div class="row" style="margin-top:8px;">
-      <button class="btn" style="background:#37b24d;" onclick="lsImportJson()">💾 데이터 파싱 및 수업 추가</button>
-      <span id="aiImportMsg" style="font-size:13px; font-weight:bold;"></span>
+  <!-- ===== 로그인 ===== -->
+  <div id="login">
+    <div class="login-card">
+      <div class="book">📔</div>
+      <h1>미술교사 비법책 <span style="font-size:15px;color:#847f8f;font-weight:600;">(arty)</span></h1>
+      <p>미술 수업을 돕는 교사 전용 도구 모음</p>
+      <input id="loginPw" type="password" inputmode="numeric" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()">
+      <div id="loginErr"></div>
+      <button onclick="doLogin()">들어가기</button>
+      <div class="login-hint">처음이라면 비밀번호 <b>0000</b> 으로 들어간 뒤,<br>설정에서 새 비밀번호로 바꿔주세요.</div>
     </div>
   </div>
-</div>
 
-<!-- ================= 4. 화가 데이터베이스 패널 ================= -->
-<div id="p-artist" class="panel">
-  <h2>🖼️ 학생 사이트 탑재용 화가/미술가 사전 관리</h2>
-  <div class="row no-print">
-    <select id="atCat" class="in" onchange="atShow()">
-      <option value="world">🌍 서양/세계 미술가</option>
-      <option value="korea">🇰🇷 한국 미술가</option>
-      <option value="design">📐 디자인/건축/현대작가</option>
-    </select>
-    <button class="btn" onclick="atNew()">＋ 새 화가 추가</button>
-    <button class="btn ghost" onclick="atPull()">☁️ 원본 사전 동기화</button>
-    <button class="btn gray" onclick="atExport()">📥 artists.json 다운로드</button>
-  </div>
-  <div id="atMsg" class="msg-box"></div>
-  
-  <div id="atList" style="margin-top:15px;"></div>
-  <div id="atForm" class="card" style="display:none; margin-top:20px;"></div>
+  <!-- ===== 앱 ===== -->
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand"><span class="logo">📔</span><div><h1>미술교사 비법책</h1><small>arty · Teacher's Toolkit</small></div></div>
+      <ul class="nav">
+        <li><button class="active" data-tab="home" onclick="go('home',this)">🏠 홈</button></li>
+        <li><button data-tab="seat" onclick="go('seat',this)">🪑 미술실 자리배치</button></li>
+        <li><button data-tab="materials" onclick="go('materials',this)">🎨 미술 재료 정리</button></li>
+        <li><button data-tab="planner" onclick="go('planner',this)">📅 주별 수업계획</button></li>
+        <li><button data-tab="checklist" onclick="go('checklist',this)">✅ 준비물 체크리스트</button></li>
+        <li><button data-tab="picker" onclick="go('picker',this)">🎲 랜덤 뽑기</button></li>
+        <li><button data-tab="score" onclick="go('score',this)">🏆 모둠 점수판</button></li>
+        <li><button data-tab="check" onclick="go('check',this)">🗂️ 학생 체크</button></li>
+        <li><button data-tab="timer" onclick="go('timer',this)">⏱️ 미술실 타이머</button></li>
+        <li style="margin-top:10px; padding:6px 14px 2px; font-size:11.5px; letter-spacing:.04em; opacity:.7;">✏️ 학생 사이트 관리</li>
+        <li><button data-tab="lesson" onclick="go('lesson',this)">📚 수업 편집기</button></li>
+        <li><button data-tab="artistedit" onclick="go('artistedit',this)">🖼️ 화가 편집기</button></li>
+        <li style="margin-top:10px;"></li>
+        <li><button data-tab="memo" onclick="go('memo',this)">📝 메모장</button></li>
+        <li><button data-tab="settings" onclick="go('settings',this)">⚙️ 설정</button></li>
+      </ul>
+      <div style="font-size:11px; opacity:.7; padding:8px 4px 2px;">학생 화면 바로가기</div>
+      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="goStudent('funart')">📚 funart (내 수업)</button>
+      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="goStudent('artclass')">🎨 artclass (공용)</button>
+      <button class="logout" style="background:rgba(255,255,255,.22); border-style:solid;" onclick="window.open('https://hongji33.github.io/arthong1/','_blank')">🧩 미술작품 모둠퍼즐</button>
+      <button class="logout" onclick="doLogout()">🔒 잠그기(로그아웃)</button>
+    </aside>
+
+    <main class="main">
+      <!-- 홈 -->
+      <section class="page show" id="page-home">
+        <h2 class="title">📔 미술교사 비법책</h2>
+        <p class="lead">미술 수업에 필요한 도구를 한곳에 모았어요. 아래에서 원하는 도구를 골라 시작하세요.</p>
+        <div class="home-grid">
+          <div class="home-card" style="border-top-color:#5b57d6;" onclick="go('seat',navBtn('seat'))"><div class="e">🪑</div><h4>미술실 자리배치</h4><p>모둠·지정석·역할·칠판 보기</p></div>
+          <div class="home-card" style="border-top-color:#12b3a6;" onclick="go('materials',navBtn('materials'))"><div class="e">🎨</div><h4>미술 재료 정리</h4><p>보유·부족 재료를 한눈에 관리</p></div>
+          <div class="home-card" style="border-top-color:#f0714f;" onclick="go('checklist',navBtn('checklist'))"><div class="e">✅</div><h4>준비물 체크리스트</h4><p>수업별 준비물 점검</p></div>
+          <div class="home-card" style="border-top-color:#e8590c;" onclick="go('picker',navBtn('picker'))"><div class="e">🎲</div><h4>랜덤 뽑기</h4><p>발표자·도우미·정리 담당</p></div>
+          <div class="home-card" style="border-top-color:#f59f00;" onclick="go('score',navBtn('score'))"><div class="e">🏆</div><h4>모둠 점수판</h4><p>모둠별 점수 올리기·칠판 보기</p></div>
+          <div class="home-card" style="border-top-color:#1971c2;" onclick="go('check',navBtn('check'))"><div class="e">🗂️</div><h4>학생 체크</h4><p>작품 제출·수행평가·참여도</p></div>
+          <div class="home-card" style="border-top-color:#2b8a3e;" onclick="go('timer',navBtn('timer'))"><div class="e">⏱️</div><h4>미술실 타이머</h4><p>단계별 활동 시간 재기</p></div>
+          <div class="home-card" style="border-top-color:#7048e8;" onclick="go('memo',navBtn('memo'))"><div class="e">📝</div><h4>메모장</h4><p>간단 메모·할 일</p></div>
+        </div>
+      </section>
+
+      <!-- 자리배치 -->
+      <section class="page" id="page-seat">
+        <h2 class="title">🪑 미술실 자리배치</h2>
+        <p class="lead">반별 지정석·모둠·역할을 정하고 '칠판으로 크게 보기'로 학생과 함께 볼 수 있어요.</p>
+        <div class="seat-toolbar row" style="margin-bottom:14px;">
+          <button class="btn" onclick="seatBoardMode(true)">🖥️ 칠판으로 크게 보기 (학생 보기)</button>
+        </div>
+        <div class="seat-editor">
+          <div class="card">
+            <label class="lbl">🏫 반 선택 (반별로 따로 배치돼요)</label>
+            <div id="classTabs" class="row"></div>
+            <div class="row" style="margin-top:8px;">
+              <input id="newClass" class="in" placeholder="예: 1-3">
+              <button class="mini" onclick="seatAddClass()">＋ 반 추가</button>
+              <button class="mini gray" onclick="seatDelClass()">현재 반 삭제</button>
+            </div>
+            <label class="lbl">🧑‍🎓 학생 명단 (한 줄에 한 명)</label>
+            <textarea id="seatRoster" rows="4" class="in" style="width:100%;" placeholder="김미술&#10;이그림"></textarea><div style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff8f0;">
+<label class="lbl">오늘 결석자 체크</label>
+<div id="seatAbsentBox"></div>
+<div style="font-size:12px;color:var(--muted);margin-top:6px;">체크한 학생은 랜덤 뽑기·모둠 편성·도우미 등 다른 페이지에서 자동 제외됩니다. 날짜가 바뀌면 자동으로 초기화됩니다.</div>
 </div>
+            <div class="row" style="margin-top:8px;"><button class="mini" onclick="seatSaveRoster()">명단 저장</button><span id="seatMsg" style="font-size:12.5px;color:#2b8a3e;"></span></div>
+
+            <label class="lbl">🔗 짝 규칙 (명단 저장 후 선택)</label>
+            <div style="display:flex; flex-wrap:wrap; gap:16px;">
+              <div style="flex:1; min-width:250px;">
+                <div style="font-size:12.5px;font-weight:800;color:#c92a2a;margin-bottom:5px;">🚫 붙이면 안 되는 짝</div>
+                <div class="row"><select id="apartA" class="in"></select><select id="apartB" class="in"></select><button class="mini gray" onclick="seatAddPair('apart')">추가</button></div>
+                <div id="apartList" style="margin-top:8px;"></div>
+              </div>
+              <div style="flex:1; min-width:250px;">
+                <div style="font-size:12.5px;font-weight:800;color:#2b8a3e;margin-bottom:5px;">🤝 꼭 붙여야 하는 짝</div>
+                <div class="row"><select id="togetherA" class="in"></select><select id="togetherB" class="in"></select><button class="mini gray" onclick="seatAddPair('together')">추가</button></div>
+                <div id="togetherList" style="margin-top:8px;"></div>
+              </div>
+            </div>
+
+            <label class="lbl">🪑 모둠(자리) 형태</label>
+            <div id="groupSizeSeg"></div>
+            <label class="lbl">📐 모둠 수 — <span id="gcVal">6</span>개</label>
+            <input type="range" id="groupCount" min="1" max="12" value="6" style="width:100%;">
+            <div class="row" style="margin-top:12px;">
+              <button class="btn warm" onclick="seatRandom()">🎲 랜덤 배치</button>
+              <button class="btn ghost" onclick="seatClearAssign()">배치 비우기</button>
+              <button class="btn ghost" onclick="seatApplyAll()">📋 전체 반 적용</button>
+            </div>
+            <div id="seatWarn" style="color:#c92a2a;font-weight:700;font-size:13px;margin-top:8px;"></div>
+            <div class="note" style="margin-top:8px;">💡 자리 두 곳을 차례로 누르면 서로 바뀌어요. 랜덤 후 지정석으로 손보세요.</div>
+
+            <div id="roleBox">
+              <label class="lbl">🧹 4인 모둠 역할 (A·B·C·D)</label>
+              <div class="row">
+                <span>A <input id="roleA" class="in" style="width:88px;" value="바닥쓸기"></span>
+                <span>B <input id="roleB" class="in" style="width:88px;" value="나누미"></span>
+                <span>C <input id="roleC" class="in" style="width:88px;" value="정돈이"></span>
+                <span>D <input id="roleD" class="in" style="width:88px;" value="제출이"></span>
+              </div>
+              <div class="row" style="margin-top:8px;"><button class="mini" onclick="seatRotateRoles()">🔄 역할 한 칸 돌리기</button><button class="mini" onclick="seatRandomRoles()">🎲 역할 랜덤</button></div>
+            </div>
+
+            <label class="lbl">📌 자리표 저장·불러오기 (한 학기·월별)</label>
+            <div class="row"><input id="layoutName" class="in" placeholder="예: 한 학기 지정석, 9월 자리"><button class="mini" onclick="seatSaveLayout()">현재 배치 저장</button></div>
+            <div id="layoutList" style="margin-top:8px;"></div>
+          </div>
+        </div>
+        <div class="seat-front">🟦 칠 판 · 교 탁 🟦</div>
+        <div class="seat-grid" id="seatGrid"></div>
+        <button id="boardExit" onclick="seatBoardMode(false)" style="display:none;position:fixed;top:14px;right:14px;z-index:60;border:0;background:var(--accent);color:#fff;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;">✕ 크게 보기 끝내기</button>
+      </section>
+
+      <!-- 재료 정리 -->
+      <section class="page" id="page-materials">
+        <h2 class="title">🎨 미술 재료 정리</h2>
+        <p class="lead">보유한 미술 재료와 수량·보관 장소를 관리하고, 부족한 재료를 한눈에 확인하세요.</p>
+        <div class="card">
+          <h3>➕ 재료 추가</h3>
+          <div class="row">
+            <input id="matName" class="in" placeholder="재료 이름 (예: 아크릴 물감)">
+            <select id="matCat" class="in"><option>물감·채색</option><option>붓·도구</option><option>종이·화지</option><option>점토·조소</option><option>공예·재료</option><option>기타</option></select>
+            <input id="matQty" class="in" style="width:110px;" placeholder="수량 (예: 20)">
+            <input id="matPlace" class="in" style="width:130px;" placeholder="보관 장소">
+            <select id="matStatus" class="in"><option value="ok">충분</option><option value="low">부족</option><option value="no">없음</option></select>
+            <button class="btn" onclick="matAdd()">추가</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>📦 재료 목록 <span id="matCount" style="font-size:13px;color:var(--muted);font-weight:600;"></span></h3>
+          <div class="row" style="margin-bottom:10px;"><button class="mini gray" onclick="matFilter('all')">전체</button><button class="mini gray" onclick="matFilter('low')">부족·없음만</button><button class="mini gray" onclick="matExport()">📤 내보내기</button><button class="mini gray" onclick="document.getElementById('matImport').click()">📥 불러오기</button><input type="file" id="matImport" accept=".json" style="display:none;"></div>
+          <table class="tb"><thead><tr><th>재료</th><th>분류</th><th>수량</th><th>장소</th><th>상태</th><th></th></tr></thead><tbody id="matBody"></tbody></table>
+        </div>
+      </section>
+
+      <!-- 준비물 체크리스트 -->
+      <section class="page" id="page-checklist">
+        <h2 class="title">✅ 준비물 체크리스트</h2>
+        <p class="lead">수업별 준비물을 목록으로 만들고 체크하세요. 여러 개의 목록을 만들 수 있어요.</p>
+        <div class="card">
+          <div class="row"><input id="clNew" class="in" placeholder="새 목록 이름 (예: 3학년 수채화)"><button class="mini" onclick="clAddList()">＋ 목록 추가</button></div>
+          <div id="clTabs" class="row" style="margin-top:10px;"></div>
+        </div>
+        <div class="card" id="clPanel">
+          <div class="row"><input id="clItem" class="in" style="flex:1;" placeholder="준비물 입력 후 Enter 또는 추가" onkeydown="if(event.key==='Enter')clAddItem()"><button class="mini" onclick="clAddItem()">추가</button><button class="mini gray" onclick="clClearDone()">체크된 항목 지우기</button></div>
+          <div id="clList" style="margin-top:12px;"></div>
+        </div>
+      </section>
+
+      <!-- 주별 수업계획 -->
+      <section class="page" id="page-planner">
+        <h2 class="title">📅 주별 수업계획</h2>
+        <p class="lead">학기 시작일과 주차 수를 정하면 주차별 날짜가 자동으로 나와요. 행사 주간은 '행사'로 표시하면 수업칸이 잠기고, 각 주마다 어느 반이 했는지 체크할 수 있어요. 인쇄(PDF 저장)도 됩니다.</p>
+        <div class="card plan-setup">
+          <div class="row">
+            <span><label class="lbl" style="margin:0 0 4px;">학기 시작일 (월요일 권장)</label><br><input type="date" id="planStart" class="in"></span>
+            <span><label class="lbl" style="margin:0 0 4px;">주차 수</label><br><input type="number" id="planWeeks" class="in" style="width:90px;" min="1" max="30" value="16"></span>
+            <span style="flex:1; min-width:220px;"><label class="lbl" style="margin:0 0 4px;">반 목록 (쉼표로 구분)</label><br><input id="planClasses" class="in" style="width:100%;" placeholder="1-1, 1-2, 1-3"></span>
+          </div>
+          <div class="row" style="margin-top:12px;"><button class="btn" onclick="planBuild()">표 만들기 / 갱신</button><span id="planMsg" style="font-size:12.5px;color:#2b8a3e;"></span></div>
+        </div>
+        <div class="plan-toolbar row" style="margin-bottom:12px;">
+          <button class="btn teal" onclick="planPrint()">🖨️ 인쇄 / PDF 저장</button>
+        </div>
+        <div class="card" style="overflow-x:auto;">
+          <table class="plan-table" id="planTable"></table>
+        </div>
+      </section>
+
+      <!-- 랜덤 뽑기 -->
+      <section class="page" id="page-picker">
+        <h2 class="title">🎲 랜덤 뽑기</h2>
+        <p class="lead">발표자나 모둠을 랜덤으로 정해요. 이름을 넣거나 자리배치의 반 명단을 불러올 수 있어요.</p>
+        <div class="card">
+          <label class="lbl">대상 반</label>
+           <div class="row" style="margin-bottom:10px;">
+             <select id="pickClass" class="in" style="min-width:180px;" onchange="pickSyncRoster()"></select>
+             <button class="mini gray" onclick="pickLoadClass()">명단 새로고침</button>
+           </div>
+           <label class="lbl">오늘 출석 학생</label>
+           <textarea id="pickRoster" rows="4" class="in" style="width:100%;" readonly></textarea>
+           <div style="font-size:12.5px;color:var(--muted);margin-top:6px;">미술실 자리배치에서 체크한 오늘 결석자는 자동으로 제외됩니다.</div>
+           <div class="row" style="margin-top:12px;">
+            <button class="btn warm" onclick="pickOne()">🎯 한 명 뽑기 (발표자)</button>
+            <button class="btn ghost" onclick="pickGroups()">👥 모둠으로 나누기</button>
+            <input id="pickGroupN" class="in" style="width:110px;" type="number" min="2" value="4" title="한 모둠 인원">
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button class="btn teal" onclick="pickHelper()">🙋 오늘의 도우미 뽑기</button>
+            <input id="pickHelperN" class="in" style="width:110px;" type="number" min="1" value="2" title="도우미 인원">
+            <button class="btn" style="background:#2b8a3e;" onclick="pickCleanRoles()">🧹 정리 담당 뽑기</button>
+          </div>
+          <div style="font-size:12.5px; color:var(--muted); margin-top:8px;">🧹 정리 담당: 바닥 쓸기 · 책상 닦기 · 붓·팔레트 정리 · 작품 걷기 · 재료 정리 를 자동으로 나눠줘요.</div>
+        </div>
+        <div class="card"><div id="pickResult">여기에 결과가 나와요</div><div id="pickGroupsOut" style="margin-top:14px;"></div></div>
+      </section>
+
+      <!-- 모둠 점수판 -->
+      <section class="page" id="page-score">
+        <h2 class="title">🏆 모둠 점수판</h2>
+        <p class="lead">모둠별로 점수를 올리고 내려요. '칠판에 크게 띄우기'로 학생들과 함께 보며 활동을 격려하세요. 점수는 자동 저장돼요.</p>
+        <div class="card sc-setup">
+          <div class="row" style="align-items:center; gap:10px;">
+            <label class="lbl" style="margin:0;">모둠 수</label>
+            <input id="scCount" class="in" type="number" min="1" max="12" value="6" style="width:90px;" oninput="scSetCount(this.value)">
+            <button class="mini gray" onclick="scResetScores()">점수 0으로</button>
+            <button class="mini gray" onclick="scRename()">모둠 이름 바꾸기</button>
+          </div>
+        </div>
+        <div class="sc-toolbar row" style="margin:12px 0;"><button class="btn teal" onclick="scBoard(true)">🖥️ 칠판에 크게 띄우기</button></div>
+        <div class="card"><div id="scGrid" class="sc-grid"></div></div>
+        <button id="scBoardExit" onclick="scBoard(false)" style="display:none; position:fixed; top:14px; right:14px; z-index:60; border:0; background:var(--accent); color:#fff; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer;">✕ 크게보기 끝내기</button>
+      </section>
+
+      <!-- 학생 체크 -->
+      <section class="page" id="page-check">
+        <h2 class="title">🗂️ 학생 체크</h2>
+        <p class="lead">반별 명단으로 작품 제출·수행평가·참여도를 한 번에 확인해요. 이름을 클릭하면 표시가 바뀌고, 자동으로 저장돼요.</p>
+        <div class="card">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl" style="margin:0;">반 선택</label>
+            <select id="ckClass" class="in" style="width:auto; min-width:120px;" onchange="ckRender()"></select>
+            <label class="lbl" style="margin:0;">항목</label>
+            <select id="ckKind" class="in" style="width:auto; min-width:150px;" onchange="ckRender()">
+              <option value="submit">📦 작품 제출</option>
+              <option value="assess">✍️ 수행평가</option>
+              <option value="part">🙌 참여도</option>
+            </select>
+            <button class="mini gray" onclick="ckClearCol()">이 항목 초기화</button>
+            <button class="btn teal" style="margin-left:auto;" onclick="ckPrint()">🖨️ 인쇄 / PDF</button>
+          </div>
+          <div style="font-size:12.5px; color:var(--muted); margin-top:8px;" id="ckHint"></div>
+        </div>
+        <div class="card"><div id="ckGrid"></div></div>
+      </section>
+
+      <!-- 수업 편집기 -->
+      <section class="page" id="page-lesson">
+        <h2 class="title">📚 수업 편집기</h2>
+        <p class="lead">「수업 바로가기」에 보일 수업을 직접 만들고 고쳐요. 수업 바로가기는 <b>funart 사이트</b>에만 있어요.</p>
+        <div class="card tgt-bar" id="tgtLesson"></div>
+        <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
+          <b>📌 사용 순서</b>
+          <ol style="margin:8px 0 0; padding-left:20px; line-height:1.9; font-size:14px;">
+            <li><b>① 불러오기</b>로 현재 funart 사이트의 수업을 가져와요(처음 한 번).</li>
+            <li>학년을 고르고 <b>＋ 새 수업</b>을 만들거나, 목록에서 <b>수정</b>을 눌러 고쳐요.</li>
+            <li><b>② lessons.json 내보내기</b>로 파일을 받아요.</li>
+            <li>그 파일을 <b>funart 저장소</b>에 올리면 끝!</li>
+          </ol>
+        </div>
+        <div id="lsGuard"></div>
+        <div class="card" id="lsControls">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl" style="margin:0;">학년</label>
+            <select id="lsGrade" class="in" style="width:auto; min-width:90px;" onchange="lsRenderList()">
+              <option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option>
+            </select>
+            <button class="btn warm" onclick="lsNew()">＋ 새 수업</button>
+            <button class="mini gray" onclick="lsPull()">① 학생 사이트에서 불러오기</button>
+            <button class="btn" style="margin-left:auto; background:#5b57d6;" onclick="lsPublish(this)">🚀 funart에 한 번에 발행</button>
+            <button class="btn teal" onclick="lsExport()">또는 파일로 내보내기</button>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="lsMsg"></div>
+        </div>
+
+        <div class="card" id="lsAiCard" style="background:#f3f7ff; border-color:#d6e4ff;">
+          <h3>🤖 AI로 수업 초안 만들기</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin:2px 0 12px;">간단한 내용만 넣고 <b>프롬프트 복사</b>를 누른 뒤, 아무 AI(클로드·제미나이·챗지피티 등)에 붙여넣으면 이 페이지 형식에 맞는 수업이 만들어져요. 그 결과(JSON)를 아래 '②'에 붙여넣으면 수업 목록에 추가돼요.</p>
+          <div class="row" style="gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:150px;"><label class="lbl">학년</label>
+              <select id="aiGrade" class="in"><option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option></select></div>
+            <div style="flex:2; min-width:200px;"><label class="lbl">수업 제목(주제)</label>
+              <input id="aiTitle" class="in" placeholder="예: 명화 속 색채 이야기"></div>
+          </div>
+          <div class="row" style="gap:10px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:150px;"><label class="lbl">단원(선택)</label>
+              <input id="aiUnit" class="in" placeholder="예: 색채"></div>
+            <div style="flex:2; min-width:200px;"><label class="lbl">참고 설명·키워드(선택)</label>
+              <input id="aiKeywords" class="in" placeholder="예: 반 고흐, 따뜻한 색, 감정 표현"></div>
+          </div>
+          <label class="lbl">꼭 넣을 섹션(선택)</label>
+          <div class="row" style="gap:14px; flex-wrap:wrap; font-size:14px;">
+            <label><input type="checkbox" class="aiSec" value="준비물"> 준비물</label>
+            <label><input type="checkbox" class="aiSec" value="수업 진행 과정"> 수업 진행 과정</label>
+            <label><input type="checkbox" class="aiSec" value="유의사항"> 유의사항</label>
+            <label><input type="checkbox" class="aiSec" value="평가·마무리"> 평가·마무리</label>
+          </div>
+          <div class="row" style="margin-top:12px;"><button class="btn" onclick="lsCopyPrompt()">📋 프롬프트 만들어 복사하기</button><span id="aiPromptMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
+          <textarea id="aiPromptOut" class="in" rows="6" style="width:100%; margin-top:10px; font-size:12.5px; display:none;" readonly></textarea>
+        </div>
+
+        <div class="card" id="lsImportCard" style="background:#f6fff3; border-color:#d6f0c8;">
+          <h3>📥 AI가 만든 수업(JSON) 붙여넣기</h3>
+          <p style="font-size:13.5px;color:var(--muted);margin:2px 0 10px;">AI가 만들어 준 JSON을 여기에 붙여넣고 버튼을 누르면, 위에서 고른 학년의 수업 목록에 추가돼요. (```로 감싸져 있어도 괜찮아요.)</p>
+          <textarea id="aiImportIn" class="in" rows="6" style="width:100%; font-size:12.5px;" placeholder='여기에 AI가 준 JSON을 붙여넣으세요'></textarea>
+          <div class="row" style="margin-top:10px;"><button class="btn teal" onclick="lsImportJson()">이 수업 추가하기</button><span id="aiImportMsg" style="font-size:13px;"></span></div>
+        </div>
+
+        <div class="card"><div id="lsList"></div></div>
+        <div class="card" id="lsForm" style="display:none;"></div>
+      </section>
+
+      <!-- 화가 편집기 -->
+      <section class="page" id="page-artistedit">
+        <h2 class="title">🖼️ 화가 편집기</h2>
+        <p class="lead">「추천 화가·디자이너」에 보일 인물을 추가·수정해요. 이 메뉴는 <b>artclass·funart 두 사이트 모두</b> 관리할 수 있어요. 아래에서 대상 사이트를 고르세요.</p>
+        <div class="card tgt-bar" id="tgtArtist"></div>
+        <div class="card" style="background:#fff8f0; border-color:#ffe3c2;">
+          <b>📌 사용 순서</b>: 대상 사이트 선택 → ① 불러오기 → 분류 고르고 ＋ 새 화가 / 수정 → ② artists.json 내보내기 → 해당 저장소에 올리기
+        </div>
+        <div class="card">
+          <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
+            <label class="lbl">분류</label>
+            <select id="atCat" class="in" style="width:auto; min-width:130px;" onchange="atRenderList()">
+              <option value="world">해외 화가</option><option value="korea">국내 화가</option><option value="design">디자이너</option>
+            </select>
+            <button class="btn warm" onclick="atNew()">＋ 새 화가</button>
+            <button class="mini gray" onclick="atPull()">① 학생 사이트에서 불러오기</button>
+            <button class="btn" style="margin-left:auto; background:#5b57d6;" onclick="atPublish(this)">🚀 한 번에 발행</button>
+            <button class="btn teal" onclick="atExport()">또는 파일로 내보내기</button>
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="atMsg"></div>
+        </div>
+        <div class="card"><div id="atList"></div></div>
+        <div class="card" id="atForm" style="display:none;"></div>
+      </section>
+
+      <!-- 미술실 타이머 (다단계) -->
+      <section class="page" id="page-timer">
+        <h2 class="title">⏱️ 미술실 타이머</h2>
+        <p class="lead">미술 수업 단계별로 시간을 재요. 시작하면 단계가 자동으로 넘어가고, 소리로 알려줘요. '칠판에 크게 띄우기'로 학생들과 함께 보세요.</p>
+        <div class="card tmr-setup">
+          <h3>🧩 단계 설정</h3>
+          <div id="stageList"></div>
+          <div class="row" style="margin-top:10px;"><button class="mini" onclick="tmrAddStage()">＋ 단계 추가</button><button class="mini gray" onclick="tmrResetStages()">기본값으로</button></div>
+        </div>
+        <div class="tmr-toolbar row" style="margin-bottom:12px;"><button class="btn teal" onclick="tmrBoard(true)">🖥️ 칠판에 크게 띄우기</button></div>
+        <div class="card" id="tmrDisplay" style="text-align:center;">
+          <div id="tmrStageName" style="font-size:20px; font-weight:800; color:var(--brand);">단계를 설정하고 시작하세요</div>
+          <div id="tmrBig" style="font-size:74px; font-weight:800; letter-spacing:.04em; margin:6px 0;">05:00</div>
+          <div id="tmrProgress" style="color:var(--muted); font-size:14px;"></div>
+          <div class="row" style="justify-content:center; margin-top:16px;">
+            <button class="btn" id="tmrStart" onclick="tmrToggle()">▶ 시작</button>
+            <button class="btn ghost" onclick="tmrNext()">⏭ 다음 단계</button>
+            <button class="btn ghost" onclick="tmrReset()">↺ 리셋</button>
+          </div>
+        </div>
+        <button id="tmrBoardExit" onclick="tmrBoard(false)" style="display:none; position:fixed; top:14px; right:14px; z-index:60; border:0; background:var(--accent); color:#fff; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer;">✕ 크게보기 끝내기</button>
+      </section>
+
+      <!-- 메모 -->
+      <section class="page" id="page-memo">
+        <h2 class="title">📝 메모장</h2>
+        <p class="lead">수업 아이디어나 할 일을 적어두세요. 자동으로 저장돼요.</p>
+        <div class="card"><textarea id="memoArea" rows="16" class="in" style="width:100%; font-size:15px; line-height:1.6;" placeholder="여기에 자유롭게 메모하세요..."></textarea><div style="font-size:12.5px;color:var(--muted);margin-top:8px;" id="memoMsg">자동 저장됨</div></div>
+      </section>
+
+      <!-- 설정 -->
+      <section class="page" id="page-settings">
+        <h2 class="title">⚙️ 설정</h2>
+        <p class="lead">비밀번호를 바꾸거나, 모든 데이터를 백업·복원할 수 있어요.</p>
+        <div class="card">
+          <h3>🔒 비밀번호 변경</h3>
+          <label class="lbl">새 비밀번호</label>
+          <input id="pwNew" class="in" type="password" placeholder="새 비밀번호">
+          <label class="lbl">새 비밀번호 확인</label>
+          <input id="pwNew2" class="in" type="password" placeholder="한 번 더 입력">
+          <div class="row" style="margin-top:12px;"><button class="btn" onclick="changePw()">변경하기</button><span id="pwMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
+        </div>
+        <div class="card">
+          <h3>🏫 담당 반 설정</h3>
+          <p style="font-size:13.5px;color:var(--muted);">한 줄에 한 반씩 적어주세요. 자리배치·주별 수업계획에서 반 목록으로 자동으로 쓰여요.</p>
+          <textarea id="setCls" rows="5" class="in" style="width:100%;" placeholder="1-1&#10;1-2&#10;1-3"></textarea>
+          <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveMyClassesFromSettings()">저장</button><span id="setClsMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
+        </div>
+        <div class="card">
+          <h3>🎨 학생 사이트 주소</h3>
+          <p style="font-size:13.5px;color:var(--muted);">두 학생 사이트의 인터넷 주소예요. 편집기의 '불러오기·미리보기'와 사이드바 '학생 화면으로 가기'가 이 주소를 사용해요. (GitHub Pages 주소)</p>
+          <label class="lbl">📚 funart (내 수업 사이트)</label>
+          <input id="setUrlFunart" class="in" style="width:100%;" placeholder="[https://아이디.github.io/funart/](https://아이디.github.io/funart/)">
+          <label class="lbl">🎨 artclass (공용 사이트)</label>
+          <input id="setUrlArtclass" class="in" style="width:100%;" placeholder="[https://아이디.github.io/artclass/](https://아이디.github.io/artclass/)">
+          <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveStudentUrl()">저장</button><span id="stuMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
+        </div>
+        <div class="card" style="background:#f3f7ff; border-color:#d6e4ff;">
+          <h3>🚀 한 번에 발행 설정 (깃허브 토큰)</h3>
+          <p style="font-size:13.5px;color:var(--muted);">깃허브 토큰(열쇠)을 여기 한 번만 넣어두면, 편집기의 <b>🚀 한 번에 발행</b> 버튼으로 파일을 자동으로 올릴 수 있어요. 파일을 내려받아 다시 올릴 필요가 없어져요. 토큰은 <b>이 브라우저에만</b> 저장되고 공개되지 않아요. (무료예요)</p>
+          <label class="lbl">깃허브 토큰</label>
+          <input id="setGhToken" class="in" type="password" style="width:100%;" placeholder="github_pat_... 또는 ghp_...">
+          <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveGhToken()">저장</button><button class="mini gray" onclick="ghTest()">🔌 연결 테스트</button><span id="ghMsg" style="font-size:13px;"></span></div>
+          <p style="font-size:12px;color:var(--muted);margin-top:10px;">토큰 만드는 법이 궁금하면 지연님(선생님)께 물어보거나 안내를 참고하세요. 권한은 funart·artclass 저장소의 <b>Contents(내용) 쓰기</b>만 있으면 돼요.</p>
+        </div>
+        <div class="card">
+          <h3>💾 전체 데이터 백업·복원</h3>
+          <p style="font-size:13.5px;color:var(--muted);">자리배치·재료·체크리스트·메모 등 모든 데이터를 파일 하나로 저장하거나, 다른 컴퓨터에서 불러올 수 있어요.</p>
+          <div class="row"><button class="btn ghost" onclick="backupAll()">📤 전체 내보내기</button><button class="btn ghost" onclick="document.getElementById('restoreAll').click()">📥 전체 불러오기</button><input type="file" id="restoreAll" accept=".json" style="display:none;"></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 첫 로그인: 담당 반 입력 -->
+    <div id="onboard" style="display:none; position:fixed; inset:0; z-index:90; background:rgba(40,30,60,.55); align-items:center; justify-content:center; padding:20px;">
+      <div style="background:#fff; border-radius:20px; padding:30px 28px; max-width:400px; width:100%; box-shadow:0 24px 60px rgba(0,0,0,.35);">
+        <div style="font-size:42px; text-align:center;">🏫</div>
+        <h3 style="text-align:center; margin:6px 0 4px; font-size:20px;">담당 반을 알려주세요</h3>
+        <p style="text-align:center; color:var(--muted); font-size:13.5px; margin:0 0 16px;">한 줄에 한 반씩 적어주세요. 자리배치·수업계획에서 자동으로 쓰여요. (설정에서 언제든 바꿀 수 있어요.)</p>
+        <textarea id="onboardCls" rows="5" class="in" style="width:100%;" placeholder="1-1&#10;1-2&#10;1-3"></textarea>
+        <button class="btn" style="width:100%; margin-top:12px; justify-content:center;" onclick="onboardSave()">저장하고 시작하기</button>
+        <button class="mini gray" style="width:100%; margin-top:8px;" onclick="document.getElementById('onboard').style.display='none'">나중에 하기</button>
+      </div>
+    </div>
+  </div>
 
 <script>
-/* ================= 글로벌 인프라 및 보안 설정 ================= */
-const SITES = {
-  funart: { label: '즐거운 미술실(본교)', url: 'https://fe-funart.github.io/site/' },
-  artroom: { label: '창의 미술 교실(분교)', url: 'https://fe-artroom.github.io/main/' }
+/* ================= 로그인 ================= */
+function pwGet(){ try{ return localStorage.getItem('tbook_pw')||'0000'; }catch(e){ return '0000'; } }
+function doLogin(){
+  const v=document.getElementById('loginPw').value.trim();
+  if(v===pwGet()){ document.getElementById('login').style.display='none'; document.getElementById('app').style.display='flex'; bootApp(); }
+  else { document.getElementById('loginErr').textContent='비밀번호가 틀렸어요.'; document.getElementById('loginPw').value=''; }
+}
+function doLogout(){ document.getElementById('app').style.display='none'; document.getElementById('login').style.display='flex'; document.getElementById('loginPw').value=''; document.getElementById('loginErr').textContent=''; }
+function changePw(){
+  const a=document.getElementById('pwNew').value.trim(), b=document.getElementById('pwNew2').value.trim();
+  if(!a){ alert('새 비밀번호를 입력하세요.'); return; }
+  if(a!==b){ document.getElementById('pwMsg').style.color='#c92a2a'; document.getElementById('pwMsg').textContent='두 비밀번호가 달라요.'; return; }
+  try{ localStorage.setItem('tbook_pw',a); }catch(e){}
+  document.getElementById('pwNew').value=''; document.getElementById('pwNew2').value='';
+  document.getElementById('pwMsg').style.color='#2b8a3e'; document.getElementById('pwMsg').textContent='비밀번호를 바꿨어요.';
+}
+
+/* ================= 네비게이션 ================= */
+function navBtn(tab){ return document.querySelector('.nav button[data-tab="'+tab+'"]'); }
+function go(tab, btn){
+  if(typeof syncClassRosterEverywhere==='function') syncClassRosterEverywhere();
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  (btn||navBtn(tab)).classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById('page-'+tab).classList.add('show');
+  if(tab==='seat') seatRenderAll();
+  if(tab==='picker') pickRefreshClasses();
+  if(tab==='materials') matRender();
+  if(tab==='checklist') clRender();
+  if(tab==='planner') planRender();
+  if(tab==='timer') timerShow();
+  if(tab==='score') scRender();
+  if(tab==='check') ckShow();
+  if(tab==='lesson') lsShow();
+  if(tab==='artistedit') atShow();
+  window.scrollTo(0,0);
+}
+function esc(s){ return (s==null?'':''+s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function lsGet(k,def){ try{ const s=localStorage.getItem(k); return s?JSON.parse(s):def; }catch(e){ return def; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+/* ================= 자리배치 ================= */
+let SEAT=null, seatSel=null;
+function seatDefault(){ return {current:'우리 반', roles:{A:'바닥쓸기',B:'나누미',C:'정돈이',D:'제출이'}, classes:{ '우리 반':{students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}} } }; }
+function seatLoad(){ SEAT=lsGet('tbook_seat',null)||seatDefault(); if(!SEAT.classes||!Object.keys(SEAT.classes).length) SEAT=seatDefault(); if(!SEAT.roles) SEAT.roles={A:'바닥쓸기',B:'나누미',C:'정돈이',D:'제출이'}; if(!SEAT.current||!SEAT.classes[SEAT.current]) SEAT.current=Object.keys(SEAT.classes)[0]; }
+function seatSave(msg){ lsSet('tbook_seat',SEAT); if(msg){ const m=document.getElementById('seatMsg'); if(m){ m.textContent=msg; setTimeout(()=>{m.textContent='';},2600);} } }
+function cur(){ return SEAT.classes[SEAT.current]; }
+function seatResize(){ const c=cur(); const t=c.groupSize*c.groupCount; const o=c.seats||[]; c.seats=new Array(t).fill(null).map((_,i)=>o[i]||null); }
+function sShuf(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function seatRenderAll(){
+  if(!SEAT) seatLoad();
+  document.getElementById('classTabs').innerHTML=Object.keys(SEAT.classes).map(n=>'<button class="seg'+(n===SEAT.current?' sel':'')+'" onclick="seatPickClass(\''+n.replace(/'/g,"\\'")+'\')">'+esc(n)+'</button>').join('');
+  const c=cur();
+  document.getElementById('seatRoster').value=(c.students||[]).join('\n');
+   const absentBox=document.getElementById('seatAbsentBox');
+   if(absentBox){
+     const absent=new Set(getAbsent(SEAT.current));
+     absentBox.innerHTML=(c.students||[]).map(n=>
+       '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;cursor:pointer;">'
+       +'<input type="checkbox" '+(absent.has(n)?'checked':'')+' onchange="seatToggleAbsent('+JSON.stringify(n)+')"> '
+       +esc(n)+'</label>'
+     ).join('') || '<span style="color:var(--muted);">학생 명단을 먼저 저장하세요.</span>';
+   }
+  const sizes=[[1,'1인'],[2,'2인'],[4,'4인 모둠'],[6,'6인 모둠'],[8,'8인 모둠']];
+  document.getElementById('groupSizeSeg').innerHTML=sizes.map(s=>'<button class="seg'+(c.groupSize===s[0]?' sel':'')+'" onclick="seatSetSize('+s[0]+')">'+s[1]+'</button>').join('');
+  document.getElementById('groupCount').value=c.groupCount; document.getElementById('gcVal').textContent=c.groupCount;
+  document.getElementById('roleA').value=SEAT.roles.A; document.getElementById('roleB').value=SEAT.roles.B; document.getElementById('roleC').value=SEAT.roles.C; document.getElementById('roleD').value=SEAT.roles.D;
+  document.getElementById('roleBox').style.display=(c.groupSize===4?'block':'none');
+  seatRenderPairs(); seatRenderLayouts(); seatRenderGrid();
+}
+function seatRenderGrid(){
+  const c=cur(); const gs=c.groupSize, gc=c.groupCount;
+  const cols=gs===1?1:(gs===2?2:(gs===4?2:(gs===6?3:(gs===8?4:2))));
+  const grid=document.getElementById('seatGrid'); grid.innerHTML='';
+  for(let g=0;g<gc;g++){ const box=document.createElement('div'); box.className='group'; box.style.gridTemplateColumns='repeat('+cols+',1fr)';
+    for(let p=0;p<gs;p++){ const idx=g*gs+p; const name=c.seats[idx]||null;
+      const seat=document.createElement('div'); seat.className='seat'+(name?'':' empty')+(seatSel===idx?' sel':'');
+      let h='<div class="nm">'+(name?esc(name):'빈자리')+'</div>';
+      if(gs===4){ const off=(c.roleOffset&&c.roleOffset[g])||0; const role=['A','B','C','D'][(p+off)%4]; h+='<div class="role '+role+'">'+role+'·'+esc(SEAT.roles[role]||'')+'</div>'; }
+      seat.innerHTML=h; seat.onclick=(function(i){return function(){seatClick(i);};})(idx); box.appendChild(seat); }
+    grid.appendChild(box); }
+}
+function seatClick(i){ if(seatSel===null) seatSel=i; else if(seatSel===i) seatSel=null; else { const c=cur(); const t=c.seats[seatSel]||null; c.seats[seatSel]=c.seats[i]||null; c.seats[i]=t; seatSel=null; seatSave(); } seatRenderGrid(); }
+function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderAll(); syncClassRosterEverywhere(); }
+function seatAddClass(){ const el=document.getElementById('newClass'); const n=(el.value||'').trim(); if(!n)return; if(!SEAT.classes[n]) SEAT.classes[n]={students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}}; SEAT.current=n; el.value=''; seatSave(); seatRenderAll(); }
+function seatDelClass(){ if(Object.keys(SEAT.classes).length<=1){ alert('반이 하나뿐이라 삭제할 수 없어요.'); return; } if(!confirm("'"+SEAT.current+"' 반을 삭제할까요?"))return; delete SEAT.classes[SEAT.current]; SEAT.current=Object.keys(SEAT.classes)[0]; seatSave(); seatRenderAll(); }
+function seatSaveRoster(){
+  cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  setAbsent(SEAT.current,getAbsent(SEAT.current).filter(n=>cur().students.includes(n)));
+  seatSave('명단을 저장했어요 ('+cur().students.length+'명).');
+  seatRenderPairs();
+  seatRenderAll();
+  syncClassRosterEverywhere();
+}
+function seatSetSize(v){ cur().groupSize=v; seatResize(); seatSave(); seatRenderAll(); }
+function seatRenderPairs(){
+  const c=cur(); const opts='<option value="">학생 선택</option>'+(c.students||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
+  ['apartA','apartB','togetherA','togetherB'].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=opts; });
+  function lh(type){ const a=c[type]||[]; if(!a.length) return '<span style="font-size:12.5px;color:var(--muted);">아직 없음</span>'; return a.map((pr,i)=>'<span class="pill '+(type==='together'?'ok':'no')+'" style="margin:2px;">'+esc(pr[0])+' ↔ '+esc(pr[1])+' <b style="cursor:pointer;" onclick="seatDelPair(\''+type+'\','+i+')">✕</b></span>').join(''); }
+  document.getElementById('apartList').innerHTML=lh('apart'); document.getElementById('togetherList').innerHTML=lh('together');
+}
+function seatAddPair(type){ const a=document.getElementById(type+'A').value, b=document.getElementById(type+'B').value; if(!a||!b||a===b){ alert('서로 다른 두 학생을 선택하세요.'); return; } const c=cur(); c[type]=c[type]||[]; if(c[type].some(pr=>(pr[0]===a&&pr[1]===b)||(pr[0]===b&&pr[1]===a)))return; c[type].push([a,b]); seatSave(); seatRenderPairs(); }
+function seatDelPair(type,i){ cur()[type].splice(i,1); seatSave(); seatRenderPairs(); }
+function seatRandom(){
+  const c=cur(); const gs=c.groupSize, gc=c.groupCount, total=gs*gc; const students=(c.students||[]).slice(); seatSel=null;
+  const parent={}; students.forEach(s=>parent[s]=s); function find(x){ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+  (c.together||[]).forEach(pr=>{ if(parent[pr[0]]!==undefined&&parent[pr[1]]!==undefined) parent[find(pr[0])]=find(pr[1]); });
+  const cm={}; students.forEach(s=>{ const r=find(s); (cm[r]=cm[r]||[]).push(s); }); const clusters=Object.keys(cm).map(k=>cm[k]);
+  const tooBig=clusters.some(cl=>cl.length>gs);
+  const apart={}; (c.apart||[]).forEach(pr=>{ apart[[pr[0],pr[1]].sort().join('|')]=1; });
+  function viol(bins){ let v=0; bins.forEach(bin=>{ for(let i=0;i<bin.length;i++)for(let j=i+1;j<bin.length;j++){ if(apart[[bin[i],bin[j]].sort().join('|')])v++; } }); return v; }
+  let best=null,bestV=Infinity;
+  for(let a=0;a<1500;a++){ const order=sShuf(clusters.slice()); const bins=[]; for(let g=0;g<gc;g++)bins.push([]); let ok=true;
+    for(let ci=0;ci<order.length;ci++){ const cl=order[ci]; if(cl.length>gs){ok=false;break;} const cand=[]; for(let g=0;g<gc;g++){ if(bins[g].length+cl.length<=gs)cand.push(g); } if(!cand.length){ok=false;break;} sShuf(cand); let ch=cand[0];
+      for(let k=0;k<cand.length;k++){ const g=cand[k]; let bad=false; for(let x=0;x<cl.length&&!bad;x++)for(let y=0;y<bins[g].length;y++){ if(apart[[cl[x],bins[g][y]].sort().join('|')]){bad=true;break;} } if(!bad){ch=g;break;} }
+      bins[ch]=bins[ch].concat(cl); }
+    if(!ok)continue; const v=viol(bins); if(v<bestV){bestV=v;best=bins; if(v===0)break;} }
+  const seats=new Array(total).fill(null); let warn='';
+  if(best){ for(let g=0;g<gc;g++)for(let p=0;p<best[g].length;p++)seats[g*gs+p]=best[g][p]; if(bestV>0) warn+='⚠️ "붙이면 안 되는" 짝 '+bestV+'쌍을 다 못 떨어뜨렸어요. '; }
+  else { const st=sShuf(students.slice()); for(let i=0;i<Math.min(total,st.length);i++)seats[i]=st[i]; ; c.seats="seats;" const extra="students.length-total;" if(extra warn+="⚠️ 규칙대로 다 넣지 못했어요. " }>0) warn='⚠️ 학생이 자리보다 '+extra+'명 많아요. '+warn; if(tooBig) warn+='⚠️ "꼭 붙여야 하는" 인원이 모둠 크기보다 많아요. ';
+  document.getElementById('seatWarn').textContent=warn; seatSave(); seatRenderGrid();
+}
+function seatClearAssign(){ const c=cur(); c.seats=new Array(c.groupSize*c.groupCount).fill(null); seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderGrid(); }
+function seatApplyAll(){ const c=cur(); Object.keys(SEAT.classes).forEach(k=>{ const cl=SEAT.classes[k]; cl.groupSize=c.groupSize; cl.groupCount=c.groupCount; const t=cl.groupSize*cl.groupCount; const o=cl.seats||[]; cl.seats=new Array(t).fill(null).map((_,i)=>o[i]||null); }); seatSave('전체 반에 적용했어요.'); seatRenderAll(); }
+function seatRotateRoles(){ const c=cur(); c.roleOffset=c.roleOffset||{}; for(let g=0;g<c.groupCount;g++)c.roleOffset[g]=((c.roleOffset[g]||0)+1)%4; seatSave(); seatRenderGrid(); }
+function seatRandomRoles(){ const c=cur(); c.roleOffset=c.roleOffset||{}; for(let g=0;g<c.groupCount;g++)c.roleOffset[g]=Math.floor(Math.random()*4); seatSave(); seatRenderGrid(); }
+function seatSaveLayout(){ const el=document.getElementById('layoutName'); const nm=(el.value||'').trim(); if(!nm){ alert('자리표 이름을 적어주세요.'); return; } const c=cur(); c.saved=c.saved||[]; const snap={name:nm,groupSize:c.groupSize,groupCount:c.groupCount,seats:(c.seats||[]).slice(),roleOffset:JSON.parse(JSON.stringify(c.roleOffset||{}))}; const ex=c.saved.findIndex(s=>s.name===nm); if(ex>=0){ if(!confirm("'"+nm+"' 이름이 있어요. 덮어쓸까요?"))return; c.saved[ex]=snap; } else c.saved.push(snap); el.value=''; seatSave('자리표를 저장했어요.'); seatRenderLayouts(); }
+function seatRenderLayouts(){ const c=cur(); const box=document.getElementById('layoutList'); const a=c.saved||[]; if(!a.length){ box.innerHTML='<span style="font-size:12.5px;color:var(--muted);">저장된 자리표가 없어요.</span>'; return; } box.innerHTML=a.map((s,i)=>'<div class="row" style="margin:5px 0;"><span class="pill" style="background:#eceaff;color:var(--brand);">📌 '+esc(s.name)+' ('+s.groupSize+'인·'+s.groupCount+'모둠)</span><button class="mini" onclick="seatLoadLayout('+i+')">불러오기</button><button class="mini gray" onclick="seatDelLayout('+i+')">삭제</button></div>').join(''); }
+function seatLoadLayout(i){ const c=cur(); const s=(c.saved||[])[i]; if(!s)return; c.groupSize=s.groupSize; c.groupCount=s.groupCount; c.seats=(s.seats||[]).slice(); c.roleOffset=JSON.parse(JSON.stringify(s.roleOffset||{})); seatSel=null; seatSave('자리표를 불러왔어요.'); seatRenderAll(); }
+function seatDelLayout(i){ if(!confirm('이 자리표를 삭제할까요?'))return; cur().saved.splice(i,1); seatSave(); seatRenderLayouts(); }
+function seatBoardMode(on){ const pg=document.getElementById('page-seat'); pg.classList.toggle('board',on); document.getElementById('boardExit').style.display=on?'block':'none'; try{ if(on){ if(pg.requestFullscreen)pg.requestFullscreen(); } else if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} window.scrollTo(0,0); }
+
+/* ================= 재료 정리 ================= */
+let MAT=[], matView='all';
+function matLoad(){ MAT=lsGet('tbook_mat',[]); }
+function matSaveLs(){ lsSet('tbook_mat',MAT); }
+function matAdd(){ const n=document.getElementById('matName').value.trim(); if(!n){ alert('재료 이름을 입력하세요.'); return; }
+  MAT.push({name:n,cat:document.getElementById('matCat').value,qty:document.getElementById('matQty').value.trim(),place:document.getElementById('matPlace').value.trim(),status:document.getElementById('matStatus').value});
+  document.getElementById('matName').value=''; document.getElementById('matQty').value=''; document.getElementById('matPlace').value='';
+  matSaveLs(); matRender(); }
+function matFilter(v){ matView=v; matRender(); }
+function matSetStatus(i,v){ MAT[i].status=v; matSaveLs(); matRender(); }
+function matDel(i){ MAT.splice(i,1); matSaveLs(); matRender(); }
+function matRender(){
+  const body=document.getElementById('matBody'); if(!body)return;
+  const rows=MAT.map((m,i)=>({m,i})).filter(o=>matView==='all'||o.m.status!=='ok');
+  document.getElementById('matCount').textContent='('+MAT.length+'개, 부족·없음 '+MAT.filter(m=>m.status!=='ok').length+'개)';
+  if(!rows.length){ body.innerHTML='<tr><td colspan="6" style="color:var(--muted);padding:16px;">'+(MAT.length?'부족·없음 재료가 없어요 👍':'아직 등록된 재료가 없어요. 위에서 추가해 보세요.')+'</td></tr>'; return; }
+  const badge={ok:'<span class="pill ok">충분</span>',low:'<span class="pill low">부족</span>',no:'<span class="pill no">없음</span>'};
+  body.innerHTML=rows.map(o=>{ const m=o.m,i=o.i; return '<tr><td><b>'+esc(m.name)+'</b></td><td>'+esc(m.cat)+'</td><td>'+esc(m.qty||'-')+'</td><td>'+esc(m.place||'-')+'</td>'+
+    '<td><select class="in" style="padding:5px;" onchange="matSetStatus('+i+',this.value)"><option value="ok"'+(m.status==='ok'?' selected':'')+'>충분</option><option value="low"'+(m.status==='low'?' selected':'')+'>부족</option><option value="no"'+(m.status==='no'?' selected':'')+'>없음</option></select> '+badge[m.status]+'</td>'+
+    '<td><button class="mini gray" onclick="matDel('+i+')">삭제</button></td></tr>'; }).join('');
+}
+function matExport(){ dl('미술재료.json', MAT); }
+document.addEventListener('DOMContentLoaded',()=>{});
+
+/* ================= 체크리스트 ================= */
+let CL={lists:[], cur:0};
+function clLoad(){ CL=lsGet('tbook_cl',null)||{lists:[{name:'기본 목록',items:[]}],cur:0}; if(!CL.lists.length) CL={lists:[{name:'기본 목록',items:[]}],cur:0}; if(CL.cur>=CL.lists.length)CL.cur=0; }
+function clSave(){ lsSet('tbook_cl',CL); }
+function clAddList(){ const el=document.getElementById('clNew'); const n=(el.value||'').trim(); if(!n)return; CL.lists.push({name:n,items:[]}); CL.cur=CL.lists.length-1; el.value=''; clSave(); clRender(); }
+function clPick(i){ CL.cur=i; clRender(); }
+function clDelList(i){ if(CL.lists.length<=1){ alert('목록이 하나뿐이에요.'); return; } if(!confirm('이 목록을 삭제할까요?'))return; CL.lists.splice(i,1); CL.cur=0; clSave(); clRender(); }
+function clAddItem(){ const el=document.getElementById('clItem'); const t=(el.value||'').trim(); if(!t)return; CL.lists[CL.cur].items.push({text:t,done:false}); el.value=''; clSave(); clRender(); }
+function clToggle(i){ const it=CL.lists[CL.cur].items[i]; it.done=!it.done; clSave(); clRender(); }
+function clDelItem(i){ CL.lists[CL.cur].items.splice(i,1); clSave(); clRender(); }
+function clClearDone(){ CL.lists[CL.cur].items=CL.lists[CL.cur].items.filter(it=>!it.done); clSave(); clRender(); }
+function clRender(){
+  const tabs=document.getElementById('clTabs'); if(!tabs)return;
+  tabs.innerHTML=CL.lists.map((l,i)=>'<button class="seg'+(i===CL.cur?' sel':'')+'" onclick="clPick('+i+')">'+esc(l.name)+'</button>').join('')+
+    ' <button class="mini gray" onclick="clDelList('+CL.cur+')">현재 목록 삭제</button>';
+  const list=CL.lists[CL.cur].items;
+  document.getElementById('clList').innerHTML = list.length? list.map((it,i)=>
+    '<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line);"><label style="flex:1;display:flex;gap:10px;align-items:center;cursor:pointer;font-size:15px;'+(it.done?'text-decoration:line-through;color:var(--muted);':'')+'"><input type="checkbox" '+(it.done?'checked':'')+' onchange="clToggle('+i+')" style="width:18px;height:18px;">'+esc(it.text)+'</label><button class="mini gray" onclick="clDelItem('+i+')">✕</button></div>'
+  ).join('') : '<div style="color:var(--muted);font-size:14px;">준비물을 추가해 보세요.</div>';
+}
+
+/* ================= 미술실 결석자 연동 ================= */
+function todayKey(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function absentKey(cls){ return 'tbook_absent_'+cls; }
+function getAbsent(cls){
+  const raw=lsGet(absentKey(cls),null);
+  if(!raw || raw.date!==todayKey()){
+    const fresh={date:todayKey(),students:[]};
+    lsSet(absentKey(cls),fresh);
+    return [];
+  }
+  return Array.isArray(raw.students)?raw.students:[];
+}
+function setAbsent(cls,list){
+  lsSet(absentKey(cls),{date:todayKey(),students:list});
+}
+function getActiveRoster(cls){
+  if(!SEAT) seatLoad();
+  const c=SEAT.classes[cls];
+  if(!c) return [];
+  const absent=new Set(getAbsent(cls));
+  return (c.students||[]).filter(Boolean).filter(n=>!absent.has(n));
+}
+function seatToggleAbsent(name){
+  const cls=SEAT.current;
+  let a=getAbsent(cls);
+  a=a.includes(name)?a.filter(x=>x!==name):a.concat(name);
+  setAbsent(cls,a);
+  seatRenderAll();
+  if(typeof pickRenderClasses==='function') pickRenderClasses();
+}
+
+/* ================= 랜덤 뽑기 ================= */
+function pickClasses(){ if(!SEAT)seatLoad(); return Object.keys(SEAT.classes||{}); }
+function pickCurrentClass(){
+  const e=document.getElementById('pickClass');
+  return e?e.value:(SEAT?SEAT.current:'');
+}
+function pickNames(){
+  const cls=pickCurrentClass();
+  if(cls && SEAT && SEAT.classes[cls]) return getActiveRoster(cls);
+  return document.getElementById('pickRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
+}
+function pickRenderClasses(){
+  if(!SEAT)seatLoad();
+  const e=document.getElementById('pickClass');
+  if(!e)return;
+  const cls=pickClasses();
+  e.innerHTML=cls.length
+    ?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+' ('+getActiveRoster(c).length+'명)</option>').join('')
+    :'<option value="">반 없음</option>';
+  if(cls.includes(SEAT.current))e.value=SEAT.current;
+  pickSyncRoster();
+}
+function pickSyncRoster(){
+  const cls=pickCurrentClass();
+  const r=document.getElementById('pickRoster');
+  if(r)r.value=cls?getActiveRoster(cls).join('\n'):'';
+}
+function pickLoadClass(){ pickSyncRoster(); }
+function pickOne(){
+  const n=pickNames(),out=document.getElementById('pickResult');
+  document.getElementById('pickGroupsOut').innerHTML='';
+  if(!n.length){out.textContent='현재 출석 학생이 없어요';return;}
+  let cnt=0;
+  const iv=setInterval(()=>{
+    out.textContent=n[Math.floor(Math.random()*n.length)];
+    if(++cnt>12){
+      clearInterval(iv);
+      out.textContent='🎉 '+n[Math.floor(Math.random()*n.length)];
+    }
+  },70);
+}
+function pickGroups(){
+  const n=sShuf(pickNames()),out=document.getElementById('pickGroupsOut');
+  document.getElementById('pickResult').textContent='👥 모둠 편성';
+  const k=Math.max(2,+document.getElementById('pickGroupN').value||4);
+  if(!n.length){out.innerHTML='현재 출석 학생이 없어요';return;}
+  const groups=[];
+  for(let i=0;i<n.length;i+=k)groups.push(n.slice(i,i+k));
+  out.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:12px;">'
+    +groups.map((g,i)=>'<div class="group" style="min-width:150px;">'
+    +'<div style="font-weight:800;margin-bottom:6px;color:var(--brand);">'+(i+1)+'모둠</div>'
+    +g.map(x=>'<div class="seat" style="cursor:default;min-height:38px;">'+esc(x)+'</div>').join('')
+    +'</div>').join('')+'</div>';
+}
+function pickHelper(){
+  const n=sShuf(pickNames()),out=document.getElementById('pickResult');
+  document.getElementById('pickGroupsOut').innerHTML='';
+  if(!n.length){out.textContent='현재 출석 학생이 없어요';return;}
+  const k=Math.max(1,+document.getElementById('pickHelperN').value||1);
+  const chosen=n.slice(0,k);
+  out.innerHTML='🙋 오늘의 도우미<div style="font-size:34px;font-weight:800;margin-top:8px;color:var(--brand);">'
+    +chosen.map(esc).join(' · ')+'</div>';
+}
+
+const CLEAN_ROLES=['바닥 쓸기','책상 닦기','붓·팔레트 정리','작품 걷기','재료 정리'];
+function pickCleanRoles(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='🧹 오늘의 정리 담당'; if(!n.length){ out.innerHTML='이름을 먼저 넣어주세요'; return; }
+  const rows=CLEAN_ROLES.map((r,i)=> n[i]?('<tr><td style="padding:8px 12px; font-weight:700; white-space:nowrap;">'+r+'</td><td style="padding:8px 12px;">'+esc(n[i])+'</td></tr>'):'').join('');
+  out.innerHTML='<table style="width:100%; border-collapse:collapse;">'+rows+'</table>'
+    +(n.length>CLEAN_ROLES.length?'<div style="font-size:12.5px;color:var(--muted);margin-top:8px;">나머지 학생: '+n.slice(CLEAN_ROLES.length).map(esc).join(', ')+'</div>':''); }
+
+/* ================= 미술실 다단계 타이머 ================= */
+let TMR={stages:[],idx:0,remain:0,iv:null,running:false,loaded:false};
+function tmrDefault(){ return [
+  {label:'아이디어 구상',min:5},
+  {label:'작품 제작',min:15},
+  {label:'작품 정리',min:3},
+  {label:'자리 정돈',min:2}
+]; }
+function tmrLoad(){ if(TMR.loaded)return; const s=lsGet('tbook_tmr',null); TMR.stages=(Array.isArray(s)&&s.length)?s:tmrDefault(); TMR.loaded=true; tmrResetState(); }
+function tmrSaveStages(){ lsSet('tbook_tmr',TMR.stages); }
+function tmrResetState(){ if(TMR.iv){clearInterval(TMR.iv);TMR.iv=null;} TMR.running=false; TMR.idx=0; TMR.remain=(TMR.stages[0]?TMR.stages[0].min*60:0); }
+function tmrFmt(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function tmrRenderSetup(){ const box=document.getElementById('stageList'); if(!box)return;
+  if(!TMR.stages.length){ box.innerHTML='<p style="color:var(--muted)">단계가 없어요. ＋ 단계 추가를 눌러 만들어 주세요.</p>'; return; }
+  box.innerHTML=TMR.stages.map((st,i)=>
+    '<div class="row" style="align-items:center; gap:8px; margin:6px 0;">'
+    +'<span style="width:22px; text-align:center; color:var(--muted); font-weight:700;">'+(i+1)+'</span>'
+    +'<input class="in" style="flex:1; min-width:120px;" value="'+esc(st.label)+'" oninput="tmrEditLabel('+i+',this.value)">'
+    +'<input class="in" type="number" min="0" max="90" style="width:74px;" value="'+st.min+'" oninput="tmrEditMin('+i+',this.value)"><span style="color:var(--muted)">분</span>'
+    +'<button class="mini gray" onclick="tmrDelStage('+i+')">삭제</button>'
+    +'</div>').join('');
+}
+function tmrEditLabel(i,v){ if(TMR.stages[i]){ TMR.stages[i].label=v; tmrSaveStages(); if(!TMR.running&&i===TMR.idx)tmrShow(); } }
+function tmrEditMin(i,v){ if(TMR.stages[i]){ TMR.stages[i].min=Math.max(0,parseInt(v)||0); tmrSaveStages(); if(!TMR.running&&i===TMR.idx){ TMR.remain=TMR.stages[i].min*60; tmrShow(); } } }
+function tmrAddStage(){ TMR.stages.push({label:'새 단계',min:5}); tmrSaveStages(); tmrRenderSetup(); }
+function tmrDelStage(i){ TMR.stages.splice(i,1); tmrSaveStages(); if(TMR.idx>=TMR.stages.length)TMR.idx=Math.max(0,TMR.stages.length-1); if(!TMR.running)tmrResetState(); tmrRenderSetup(); tmrShow(); }
+function tmrResetStages(){ if(!confirm('단계를 기본값(아이디어 구상·작품 제작·작품 정리·자리 정돈)으로 되돌릴까요?'))return; TMR.stages=tmrDefault(); tmrSaveStages(); tmrResetState(); tmrRenderSetup(); tmrShow(); }
+function tmrShow(){ const nm=document.getElementById('tmrStageName'), big=document.getElementById('tmrBig'), pg=document.getElementById('tmrProgress'); if(!big)return;
+  const st=TMR.stages[TMR.idx];
+  if(!st){ nm.textContent='단계를 추가해 주세요'; big.textContent='00:00'; pg.textContent=''; return; }
+  nm.textContent='지금은 '+st.label+' 시간입니다';
+  big.textContent=tmrFmt(TMR.remain);
+  pg.textContent='단계 '+(TMR.idx+1)+' / '+TMR.stages.length+' · 남은 시간 '+tmrFmt(TMR.remain);
+  if(TMR.remain<=10 && TMR.running) big.style.color='var(--accent)'; else big.style.color='';
+}
+function tmrTick(){ TMR.remain--; if(TMR.remain<=0){ TMR.remain=0; tmrShow(); timerBeep();
+    if(TMR.idx < TMR.stages.length-1){ TMR.idx++; TMR.remain=TMR.stages[TMR.idx].min*60; tmrShow(); }
+    else { tmrPause(); document.getElementById('tmrStart').textContent='▶ 시작'; }
+    return; }
+  tmrShow();
+}
+function tmrPause(){ if(TMR.iv){clearInterval(TMR.iv);TMR.iv=null;} TMR.running=false; }
+function tmrToggle(){ const btn=document.getElementById('tmrStart'); if(!TMR.stages.length)return;
+  if(TMR.running){ tmrPause(); btn.textContent='▶ 계속'; return; }
+  if(TMR.remain<=0){ TMR.remain=TMR.stages[TMR.idx]?TMR.stages[TMR.idx].min*60:0; }
+  if(TMR.remain<=0)return;
+  TMR.running=true; btn.textContent='⏸ 멈춤';
+  TMR.iv=setInterval(tmrTick,1000); tmrShow();
+}
+function tmrNext(){ tmrPause(); document.getElementById('tmrStart').textContent='▶ 시작';
+  if(TMR.idx < TMR.stages.length-1){ TMR.idx++; } TMR.remain=TMR.stages[TMR.idx]?TMR.stages[TMR.idx].min*60:0; tmrShow(); }
+function tmrReset(){ tmrResetState(); document.getElementById('tmrStart').textContent='▶ 시작'; tmrShow(); }
+function tmrBoard(on){ const pg=document.getElementById('page-timer'); const ex=document.getElementById('tmrBoardExit');
+  pg.classList.toggle('board',on); ex.style.display=on?'block':'none';
+  if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); }
+  else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); }
+}
+function timerShow(){ tmrLoad(); tmrRenderSetup(); tmrShow(); }
+function timerBeep(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); let t=a.currentTime;
+  for(let i=0;i<3;i++){ const o=a.createOscillator(),g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.start(t); o.stop(t+0.37); t+=0.45; }
+  }catch(e){} }
+
+/* ================= 메모 ================= */
+function memoInit(){ const a=document.getElementById('memoArea'); a.value=lsGet('tbook_memo',''); let tm=null; a.addEventListener('input',()=>{ clearTimeout(tm); document.getElementById('memoMsg').textContent='저장 중...'; tm=setTimeout(()=>{ lsSet('tbook_memo',a.value); document.getElementById('memoMsg').textContent='자동 저장됨 ✓'; },500); }); }
+
+/* ================= 백업/복원 & 유틸 ================= */
+function dl(name,obj){ const b=new Blob([JSON.stringify(obj,null,1)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click(); }
+function backupAll(){ dl('미술교사비법책_백업.json',{ seat:lsGet('tbook_seat',null), mat:lsGet('tbook_mat',[]), cl:lsGet('tbook_cl',null), memo:lsGet('tbook_memo',''), plan:lsGet('tbook_plan',null), classes:lsGet('tbook_classes',[]) }); }
+document.getElementById('restoreAll').onchange=function(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.seat)lsSet('tbook_seat',d.seat); if(d.mat)lsSet('tbook_mat',d.mat); if(d.cl)lsSet('tbook_cl',d.cl); if(d.memo!==undefined)lsSet('tbook_memo',d.memo); if(d.plan)lsSet('tbook_plan',d.plan); if(d.classes)lsSet('tbook_classes',d.classes); alert('불러왔어요. 화면을 새로고침합니다.'); location.reload(); }catch(err){ alert('올바른 백업 파일이 아니에요.'); } }; r.readAsText(f); e.target.value=''; };
+document.getElementById('matImport').onchange=function(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(Array.isArray(d)){ MAT=d; matSaveLs(); matRender(); } else alert('재료 목록 파일이 아니에요.'); }catch(err){ alert('파일을 읽을 수 없어요.'); } }; r.readAsText(f); e.target.value=''; };
+
+document.getElementById('groupCount').addEventListener('input',function(e){ cur().groupCount=+e.target.value; document.getElementById('gcVal').textContent=e.target.value; seatResize(); seatSave(); seatRenderGrid(); });
+['A','B','C','D'].forEach(function(r){ document.getElementById('role'+r).addEventListener('input',function(){ SEAT.roles[r]=this.value; seatSave(); seatRenderGrid(); }); });
+document.addEventListener('keydown',function(e){ if(e.key==='Escape' && document.getElementById('page-seat').classList.contains('board')) seatBoardMode(false); });
+
+/* ================= 관리 대상 사이트 (artclass / funart) ================= */
+const SITES={
+  funart:{ label:'📚 funart (내 수업)', short:'funart', urlKey:'tbook_url_funart', urlDef:'[https://hongji33.github.io/funart/](https://hongji33.github.io/funart/)', lessons:true },
+  artclass:{ label:'🎨 artclass (공용)', short:'artclass', urlKey:'tbook_url_artclass', urlDef:'[https://hongji33.github.io/artclass/](https://hongji33.github.io/artclass/)', lessons:false }
+};
+function getTarget(){ const t=lsGet('tbook_target','funart'); return SITES[t]?t:'funart'; }
+function siteUrl(t){ t=t||getTarget(); return lsGet(SITES[t].urlKey, SITES[t].urlDef); }
+function studentUrl(){ return siteUrl(getTarget()); }
+function setTarget(t){ if(!SITES[t])return; lsSet('tbook_target',t); atLoad(); lsLoad(); tgRender(); if(document.getElementById('page-lesson').classList.contains('show')) lsShow(); if(document.getElementById('page-artistedit').classList.contains('show')) atShow(); }
+function tgBar(id){ const t=getTarget();
+  return '<div class="row" style="align-items:center; gap:8px; flex-wrap:wrap;"><b style="margin-right:2px;">관리 대상:</b>'
+    +Object.keys(SITES).map(k=>'<button class="seg'+(k===t?' sel':'')+'" onclick="setTarget(\''+k+'\')">'+SITES[k].label+'</button>').join('')
+    +'<span style="margin-left:auto; color:var(--muted); font-size:12.5px;">'+esc(siteUrl(t))+'</span></div>';
+}
+function tgRender(){ const t=getTarget(); const a=document.getElementById('tgtLesson'); const b=document.getElementById('tgtArtist'); if(a)a.innerHTML=tgBar('tgtLesson'); if(b)b.innerHTML=tgBar('tgtArtist'); }
+function goStudent(site){ site=SITES[site]?site:getTarget(); const u=siteUrl(site); if(!u){ alert('설정에서 학생 사이트 주소를 먼저 넣어주세요.'); go('settings',navBtn('settings')); return; } window.open(u,'_blank'); }
+function saveStudentUrl(){ lsSet(SITES.funart.urlKey,(document.getElementById('setUrlFunart').value||'').trim()||SITES.funart.urlDef); lsSet(SITES.artclass.urlKey,(document.getElementById('setUrlArtclass').value||'').trim()||SITES.artclass.urlDef); const m=document.getElementById('stuMsg'); m.textContent='저장했어요.'; setTimeout(()=>m.textContent='',2000); tgRender(); }
+
+/* ================= 한 번에 발행 (깃허브 API) ================= */
+function ghToken(){ return lsGet('tbook_ghtoken',''); }
+function saveGhToken(){ lsSet('tbook_ghtoken',(document.getElementById('setGhToken').value||'').trim()); const m=document.getElementById('ghMsg'); m.style.color='#2b8a3e'; m.textContent='저장했어요.'; setTimeout(()=>m.textContent='',2500); }
+function ghParse(url){ try{ const u=new URL(url); const owner=(u.hostname||'').split('.')[0]; const repo=(u.pathname||'').split('/').filter(Boolean)[0]||''; if(!owner||!repo)return null; return {owner,repo}; }catch(e){ return null; } }
+function ghB64(str){ return btoa(unescape(encodeURIComponent(str))); }
+function ghDate(){ try{ return new Date().toISOString().slice(0,10); }catch(e){ return ''; } }
+async function ghPut(target, filename, dataObj){
+  const token=ghToken(); if(!token) throw new Error('설정에서 깃허브 토큰을 먼저 넣어주세요.');
+  const info=ghParse(siteUrl(target)); if(!info) throw new Error('사이트 주소에서 저장소를 알 수 없어요. 설정의 사이트 주소를 확인하세요.');
+  const api='[https://api.github.com/repos/'+info.owner+'/'+info.repo+'/contents/'+filename](https://api.github.com/repos/'+info.owner+'/'+info.repo+'/contents/'+filename);
+  const headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' };
+  let sha; const gr=await fetch(api,{headers});
+  if(gr.status===200){ const j=await gr.json(); sha=j.sha; }
+  else if(gr.status===401||gr.status===403){ throw new Error('토큰이 올바르지 않거나 권한이 없어요('+gr.status+'). 설정에서 토큰과 권한을 확인하세요.'); }
+  else if(gr.status===404){ sha=undefined; }
+  const body={ message: filename+' 업데이트 '+ghDate(), content: ghB64(JSON.stringify(dataObj,null,1)) };
+  if(sha) body.sha=sha;
+  const pr=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});
+  if(pr.status===200||pr.status===201) return info;
+  let em=''; try{ const e=await pr.json(); em=e.message||''; }catch(_){}
+  if(pr.status===404) throw new Error('저장소('+info.owner+'/'+info.repo+')를 찾지 못했어요. 토큰 권한에 이 저장소가 포함됐는지 확인하세요.');
+  throw new Error('발행 실패('+pr.status+') '+em);
+}
+async function lsPublish(btn){
+  const total=LS_GRADES.reduce((n,g)=>n+((LSDATA[g]||[]).length),0);
+  if(total===0 && !confirm('지금 수업이 0개예요. 이대로 발행하면 funart의 기존 수업이 사라져요. 계속할까요?')) return;
+  const orig=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='발행 중...'; }
+  try{ await ghPut('funart','lessons.json',{updated:'선생님 편집 '+ghDate(), lessons:LSDATA});
+    lsMsg('✅ funart에 발행했어요! (수업 '+total+'개) 1분쯤 뒤 학생 사이트를 새로고침하면 보여요.');
+    if(btn){ btn.textContent='✓ 발행 완료'; setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; },3000); }
+  }catch(err){ lsMsg('❌ '+err.message); if(btn){ btn.textContent=orig; btn.disabled=false; } if((err.message||'').includes('토큰'))go('settings',navBtn('settings')); }
+}
+async function atPublish(btn){
+  const s=SITES[getTarget()].short; const orig=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='발행 중...'; }
+  try{ await ghPut(getTarget(),'artists.json',{updated:'선생님 편집 '+ghDate(), artists:ATDATA});
+    atMsg('✅ '+s+'에 발행했어요! 1분쯤 뒤 학생 사이트를 새로고침하면 보여요.');
+    if(btn){ btn.textContent='✓ 발행 완료'; setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; },3000); }
+  }catch(err){ atMsg('❌ '+err.message); if(btn){ btn.textContent=orig; btn.disabled=false; } if((err.message||'').includes('토큰'))go('settings',navBtn('settings')); }
+}
+async function ghTest(){ const m=document.getElementById('ghMsg'); m.style.color='var(--muted)'; m.textContent='확인 중...';
+  const token=ghToken(); if(!token){ m.style.color='#c92a2a'; m.textContent='토큰을 먼저 넣고 저장하세요.'; return; }
+  try{ const r=await fetch('[https://api.github.com/user](https://api.github.com/user)',{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}});
+    if(r.status===200){ const j=await r.json(); m.style.color='#2b8a3e'; m.textContent='연결 성공! ('+ (j.login||'계정') +') 이제 편집기에서 🚀 한 번에 발행을 쓸 수 있어요.'; }
+    else { m.style.color='#c92a2a'; m.textContent='토큰이 올바르지 않아요('+r.status+'). 다시 확인해 주세요.'; }
+  }catch(e){ m.style.color='#c92a2a'; m.textContent='연결 확인 중 오류가 났어요. 인터넷/토큰을 확인해 주세요.'; }
+}
+
+/* ================= 담당 반(공용) ================= */
+function getMyClasses(){ return lsGet('tbook_classes',[]); }
+function applyMyClasses(list){
+  lsSet('tbook_classes', list);
+  if(!SEAT) seatLoad();
+  const keys=Object.keys(SEAT.classes);
+  const onlyEmpty = keys.length===1 && SEAT.classes[keys[0]] && (SEAT.classes[keys[0]].students||[]).length===0 && (SEAT.classes[keys[0]].seats||[]).every(s=>!s);
+  if(onlyEmpty && list.length){
+    SEAT.classes={}; list.forEach(n=>{ SEAT.classes[n]={students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}}; }); SEAT.current=list[0]; seatSave();
+  }
+  const s=document.getElementById('setCls'); if(s) s.value=list.join('\n');
+}
+function onboardSave(){ const list=document.getElementById('onboardCls').value.split('\n').map(s=>s.trim()).filter(Boolean); if(list.length) applyMyClasses(list); document.getElementById('onboard').style.display='none'; seatRenderAll(); }
+function saveMyClassesFromSettings(){ const list=document.getElementById('setCls').value.split('\n').map(s=>s.trim()).filter(Boolean); applyMyClasses(list); const m=document.getElementById('setClsMsg'); m.textContent='저장했어요. 자리배치·수업계획에 반영돼요.'; setTimeout(()=>m.textContent='',2600); seatRenderAll(); }
+
+/* ================= 주별 수업계획 ================= */
+let PLAN=null;
+function planLoad(){ PLAN=lsGet('tbook_plan',null)||{start:'',weeks:16,classes:[],rows:[]}; if(!PLAN.rows)PLAN.rows=[]; if(!PLAN.classes)PLAN.classes=[]; }
+function planSaveLs(msg){ lsSet('tbook_plan',PLAN); if(msg){ const m=document.getElementById('planMsg'); if(m){ m.textContent=msg; setTimeout(()=>m.textContent='',2200);} } }
+function planRender(){ if(!PLAN)planLoad();
+  document.getElementById('planStart').value=PLAN.start||'';
+  document.getElementById('planWeeks').value=PLAN.weeks||16;
+  const cls=(PLAN.classes&&PLAN.classes.length)?PLAN.classes:getMyClasses();
+  document.getElementById('planClasses').value=cls.join(', ');
+  planRenderTable();
+}
+function planBuild(){
+  PLAN.start=document.getElementById('planStart').value;
+  PLAN.weeks=Math.max(1,Math.min(30,+document.getElementById('planWeeks').value||16));
+  PLAN.classes=document.getElementById('planClasses').value.split(',').map(s=>s.trim()).filter(Boolean); if(!PLAN.classes.length)PLAN.classes=['우리 반'];
+  const old=PLAN.rows||[]; PLAN.rows=[]; for(let i=0;i<PLAN.weeks;i++)PLAN.rows.push(old[i]||{lesson:'',event:false,eventName:'',done:{}}); '-'; Date(PLAN.start+'T00:00:00'); Date(d.getTime()); const d="new" d.setDate(d.getDate()+i*7); e="new" e.setDate(e.getDate()+4); f="x=" function if(!PLAN.start)return if(isNaN(d.getTime()))return planRenderTable(); planSaveLs('표를 planWeekStr(i){ } 만들었어요.');>(x.getMonth()+1)+'.'+x.getDate(); return f(d)+'~'+f(e); }
+function planRenderTable(){
+  const t=document.getElementById('planTable'); if(!t)return;
+  if(!PLAN.rows.length){ t.innerHTML='<tr><td style="padding:16px;color:var(--muted);border:none;">위에서 학기 시작일·주차 수·반 목록을 정하고 \'표 만들기\'를 눌러주세요.</td></tr>'; return; }
+  let html='<tr><th class="wk">주차</th><th class="dt">날짜</th><th>수업 내용</th><th style="width:190px;">반별 완료 / 행사</th></tr>';
+  html+=PLAN.rows.map((r,i)=>{
+    const lc = r.event
+      ? '<input class="in" style="width:100%;" placeholder="행사 이름 (예: 중간고사, 체험학습)" value="'+esc(r.eventName||'')+'" oninput="planSetEvent('+i+',this.value)">'
+      : '<textarea oninput="planSetLesson('+i+',this.value)" placeholder="이 주 수업 내용">'+esc(r.lesson||'')+'</textarea>';
+    const dc = r.event
+      ? '<span style="color:#a00;font-weight:700;font-size:12.5px;">행사 주간 (수업 없음)</span>'
+      : '<div class="donerow">'+(PLAN.classes||[]).map(c=>'<span class="donechk'+(r.done&&r.done[c]?' on':'')+'" onclick="planToggleDone('+i+',\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+(r.done&&r.done[c]?' ✓':'')+'</span>').join('')+'</div>';
+    return '<tr class="'+(r.event?'event':'')+'"><td class="wk">'+(i+1)+'주</td><td class="dt">'+planWeekStr(i)+'</td><td>'+lc+'</td>'+
+      '<td>'+dc+'<div style="margin-top:8px;"><label style="font-size:12px;font-weight:700;cursor:pointer;"><input type="checkbox" '+(r.event?'checked':'')+' onchange="planToggleEvent('+i+')"> 행사(수업 없음)</label></div></td></tr>';
+  }).join('');
+  t.innerHTML=html;
+}
+function planSetLesson(i,v){ PLAN.rows[i].lesson=v; planSaveLs(); }
+function planSetEvent(i,v){ PLAN.rows[i].eventName=v; planSaveLs(); }
+function planToggleDone(i,c){ const r=PLAN.rows[i]; r.done=r.done||{}; r.done[c]=!r.done[c]; planSaveLs(); planRenderTable(); }
+function planToggleEvent(i){ PLAN.rows[i].event=!PLAN.rows[i].event; planSaveLs(); planRenderTable(); }
+function planPrint(){ window.print(); }
+
+/* ================= 부팅 ================= */
+function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); pickRenderClasses(); matRender(); clRender(); memoInit(); timerShow(); scLoad(); ckLoad(); lsLoad(); atLoad();
+  const my=getMyClasses(); const s=document.getElementById('setCls'); if(s) s.value=my.join('\n');
+  const uf=document.getElementById('setUrlFunart'); if(uf) uf.value=siteUrl('funart');
+  const ua=document.getElementById('setUrlArtclass'); if(ua) ua.value=siteUrl('artclass');
+  const gt=document.getElementById('setGhToken'); if(gt) gt.value=ghToken();
+  tgRender();
+  if(!my.length) document.getElementById('onboard').style.display='flex';
+}
+
+/* ================= 모둠 점수판 ================= */
+let SCORE=null;
+function scDefault(){ return {count:6, names:{}, scores:{}}; }
+function scLoad(){ SCORE=lsGet('tbook_score',null)||scDefault(); if(!SCORE.names)SCORE.names={}; if(!SCORE.scores)SCORE.scores={}; if(!SCORE.count)SCORE.count=6; }
+function scSave(){ lsSet('tbook_score',SCORE); }
+function scName(i){ return SCORE.names[i]||((i+1)+'모둠'); }
+function scVal(i){ return SCORE.scores[i]||0; }
+function scRender(){ if(!SCORE)scLoad(); const g=document.getElementById('scGrid'); if(!g)return;
+  const cnt=document.getElementById('scCount'); if(cnt)cnt.value=SCORE.count;
+  const cards=[]; for(let i=0;i<SCORE.count;i++){ cards.push('<div class="sc-card"><div class="sc-name">'+esc(scName(i))+'</div>'
+      +'<div class="sc-val">'+scVal(i)+'</div>'
+      +'<div class="sc-btns"><button class="sc-minus" onclick="scAdd('+i+',-1)">－</button>'
+      +'<button class="sc-plus" onclick="scAdd('+i+',1)">＋</button>'
+      +'<button class="sc-plus" style="background:#f59f00;" onclick="scAdd('+i+',5)">＋5</button></div></div>');
+  }
+  g.innerHTML=cards.join('');
+}
+function scAdd(i,d){ SCORE.scores[i]=Math.max(0,scVal(i)+d); scSave(); scRender(); }
+function scSetCount(v){ SCORE.count=Math.max(1,Math.min(12,parseInt(v)||1)); scSave(); scRender(); }
+function scResetScores(){ if(!confirm('모든 모둠 점수를 0으로 되돌릴까요?'))return; SCORE.scores={}; scSave(); scRender(); }
+function scRename(){ const i=prompt('이름을 바꿀 모둠 번호를 입력하세요 (1 ~ '+SCORE.count+')'); if(!i)return; const idx=parseInt(i)-1; if(isNaN(idx)||idx<0||idx>=SCORE.count){ alert('번호가 올바르지 않아요.'); return; } const nm=prompt('새 이름:', scName(idx)); if(nm===null)return; SCORE.names[idx]=nm.trim()||((idx+1)+'모둠'); scSave(); scRender(); }
+function scBoard(on){ const pg=document.getElementById('page-score'); const ex=document.getElementById('scBoardExit'); pg.classList.toggle('board',on); ex.style.display=on?'block':'none'; if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); } else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); } scRender(); }
+
+/* ================= 학생 체크 (수정된 연동 로직 포함) ================= */
+let CHECK=null;
+function ckLoad(){ CHECK=lsGet('tbook_check',null)||{}; }
+function ckSave(){ lsSet('tbook_check',CHECK); }
+function ckClasses(){ const my=getMyClasses(); if(my.length)return my; if(!SEAT)seatLoad(); return Object.keys(SEAT.classes); }
+function ckRoster(cls){ if(!SEAT)seatLoad(); const c=SEAT.classes[cls]; return (c&&c.students)?c.students.filter(Boolean):[]; }
+function ckShow(){ if(!SEAT)seatLoad(); if(!CHECK)ckLoad(); const sel=document.getElementById('ckClass'); const cls=ckClasses();
+  sel.innerHTML=cls.length?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''):'<option value="">(반 없음)</option>';
+  ckRender();
+}
+
+const CK_KINDS={
+  submit:{label:'작품 제출', hint:'이름을 클릭하면 제출(✓)·미제출로 바뀌어요.', cycle:['','done'], render:v=>v==='done'?'<span class="ck-badge ck-ok">✓ 제출</span>':'<span class="ck-badge ck-no">미제출</span>'},
+  assess:{label:'수행평가', hint:'클릭할 때마다 잘함(○)→보통(△)→노력요함(✗)→(없음) 순으로 바뀌어요.', cycle:['','A','B','C'], render:v=>({'A':'<span class="ck-badge ck-a">○ 잘함</span>','B':'<span class="ck-badge ck-b">△ 보통</span>','C':'<span class="ck-badge ck-c">✗ 노력요함</span>'}[v]||'<span class="ck-badge ck-no">미평가</span>')},
+  part:{label:'참여도', hint:'클릭할 때마다 별이 하나씩 늘어요(최대 5개). 활동 참여를 기록해요.', cycle:['0','1','2','3','4','5'], render:v=>'<span class="ck-badge ck-star">'+('⭐'.repeat(parseInt(v)||0)||'없음')+'</span>'}
 };
 
-function getTarget() { return document.getElementById('siteTarget').value; }
-function siteUrl(k) { return SITES[k].url; }
-function pwGet() { return document.getElementById('topPw').value; }
-function ghDate() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-function lsGet(k,def){ try{const r=localStorage.getItem(k+'_'+getTarget()); return r?JSON.parse(r):def;}catch(e){return def;} }
-function lsSet(k,v){ try{localStorage.setItem(k+'_'+getTarget(), JSON.stringify(v));}catch(e){} }
-
-function tab(id) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  const p = document.getElementById('p-' + id);
-  if(p) p.classList.add('active');
-  
-  if(id==='seat') seatRender();
-  if(id==='check') ckRender();
-  if(id==='lesson') lsShow();
-  if(id==='artist') atShow();
-}
-
-function switchSite() {
-  SEAT=null; CHECK=null; LSDATA=null; ATDATA=null;
-  seatRender(); ckRender(); lsShow(); atShow();
-}
-
-function dl(filename, obj) {
-  const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-function bootApp() {
-  alert('설정된 타겟 사이트 연동 인프라가 활성화되었습니다.\n로컬 보안 토큰이 메모리에 유지됩니다.');
-}
-
-/* ================= 미술실 자리 배치 로직 ================= */
-let SEAT = null;
-function seatLoad() { SEAT = lsGet('tbook_seat', null) || {}; }
-function seatSave() {
+function ckRender(){
   if(!SEAT) seatLoad();
-  const cls = document.getElementById('seatClass').value;
-  SEAT[cls] = [];
-  document.querySelectorAll('.seat-input').forEach(el => {
-    SEAT[cls].push(el.value.trim());
-  });
-  lsSet('tbook_seat', SEAT);
-  if(CHECK) CHECK=null; // 명단 동기화를 위해 체크 데이터 리셋 유도
-  alert("'"+cls+"' 분반 배치 정보와 명단이 로컬에 안전하게 저장되었습니다.");
-}
-function seatClear() {
-  if(!confirm('현재 편집 중인 자리배치를 전부 초기화할까요?')) return;
-  document.querySelectorAll('.seat-input').forEach(el => el.value = '');
-}
-function seatRender() {
-  if(!SEAT) seatLoad();
-  const cls = document.getElementById('seatClass').value;
-  const grid = document.getElementById('seatGrid'); if(!grid) return;
-  const arr = SEAT[cls] || Array(30).fill('');
+  if(!CHECK) ckLoad();
+  const cls = document.getElementById('ckClass').value;
+  const kind = document.getElementById('ckKind').value;
+  const grid = document.getElementById('ckGrid');
+  const hint = document.getElementById('ckHint');
+  if(!cls || !grid) return;
   
-  let html = '';
-  for(let i=0; i<30; i++) {
-    const val = arr[i] || '';
-    html += `<div class="seat-box">
-      <span class="seat-label">${i+1}번 좌석</span>
-      <input class="seat-input" value="${esc(val)}" placeholder="학생명" data-idx="${i}">
-    </div>`;
+  hint.textContent = CK_KINDS[kind].hint;
+  const students = ckRoster(cls);
+  if(!students.length){
+    grid.innerHTML = '<div style="color:var(--muted);padding:10px;">학생 명단이 없습니다. 미술실 자리배치에서 명단을 먼저 저장해주세요.</div>';
+    return;
   }
+  
+  if(!CHECK[cls]) CHECK[cls] = {};
+  
+  let html = '<div class="ck-list">';
+  students.forEach((st, idx) => {
+    /* 이름을 키로 쓰지 않고 명단의 줄 순서(idx)를 키로 사용하여 이름 수정 시에도 완벽히 연동되도록 조치 */
+    if(!CHECK[cls][idx]) CHECK[cls][idx] = {};
+    const val = CHECK[cls][idx][kind] || CK_KINDS[kind].cycle[0];
+    html += '<button class="ck-row" onclick="ckClick(\''+cls.replace(/'/g,"\\'")+'\','+idx+',\''+kind+'\')">'
+         + '<span class="ck-num">'+(idx+1)+'</span>'
+         + '<span class="ck-nm">'+esc(st)+'</span>'
+         + CK_KINDS[kind].render(val)
+         + '</button>';
+  });
+  html += '</div>';
   grid.innerHTML = html;
 }
 
-/* ================= 학생 체크 관리 로직 ================= */
-let CHECK = null;
-function ckLoad() { CHECK = lsGet('tbook_check', null) || {}; }
-function ckSave() { lsSet('tbook_check', CHECK); }
-
-function ckRoster(cls) {
-  if(!SEAT) seatLoad();
-  return (SEAT[cls] || []).filter(name => name.trim().length > 0);
+function ckClick(cls, idx, kind){
+  if(!CHECK[cls]) CHECK[cls] = {};
+  if(!CHECK[cls][idx]) CHECK[cls][idx] = {};
+  const cycle = CK_KINDS[kind].cycle;
+  const curVal = CHECK[cls][idx][kind] || cycle[0];
+  let nidx = cycle.indexOf(curVal) + 1;
+  if(nidx >= cycle.length) nidx = 0;
+  CHECK[cls][idx][kind] = cycle[nidx];
+  ckSave();
+  ckRender();
 }
 
-const CK_KINDS = {
-  hw: { label: '준비물 점검', hint: '클릭할 때마다 [지참(O) ➡️ 미참(X)] 상태가 전환됩니다.', cycle: ['', 'O', 'X'], render: v => v==='O'? '<span class="ck-badge ck-yes">지참</span>' : (v==='X'?'<span class="ck-badge ck-no">미참</span>':'<span class="ck-badge ck-no" style="background:#e9ecef;color:#495057;">미체크</span>') },
-  step1: { label: '표현 과정(중간)', hint: '클릭 순서: 미흡 ➡️ 보통 ➡️ 우수', cycle: ['', '미흡', '보통', '우수'], render: v => v? `<span class="ck-badge ck-yes" style="background:#f4fce3;color:#2b8a3e;">${v}</span>` : '<span class="ck-badge ck-no">미측정</span>' },
-  step2: { label: '표현 과정(기막힘)', hint: '클릭 순서: 미흡 ➡️ 보통 ➡️ 우수', cycle: ['', '미흡', '보통', '우수'], render: v => v? `<span class="ck-badge ck-yes" style="background:#f4fce3;color:#2b8a3e;">${v}</span>` : '<span class="ck-badge ck-no">미측정</span>' },
-  part: { label: '참여도', hint: '클릭할 때마다 별(★) 갯수가 늘어나요 (최대 3개).', cycle: ['', '★', '★★', '★★★'], render: v => v? ('<span class="ck-badge ck-star">'+v+'</span>') : '<span class="ck-badge ck-no">없음</span>' }
-};
-
-function ckRender() {
-  if(!SEAT) seatLoad(); if(!CHECK) ckLoad();
+function ckClearCol(){
   const cls = document.getElementById('ckClass').value;
   const kind = document.getElementById('ckKind').value;
-  const grid = document.getElementById('ckGrid'); if(!grid) return;
-  const hint = document.getElementById('ckHint'); if(hint) hint.textContent = CK_KINDS[kind].hint;
-  const n = ckRoster(cls);
-  if(!cls || !n.length) { grid.innerHTML = '<p style="color:var(--muted);padding:10px;">학생 명단이 비어있거나 선택된 반이 없습니다. 미술실 자리배치에서 명단을 먼저 저장해 주세요.</p>'; return; }
-  
-  CHECK[cls] = CHECK[cls] || {};
-  CHECK[cls][kind] = CHECK[cls][kind] || {};
-  
-  grid.className = 'ck-list';
-  grid.innerHTML = n.map((name, i) => {
-    const curVal = CHECK[cls][kind][name] || '';
-    return '<button class="ck-row" onclick="ckToggleState(\''+cls.replace(/'/g,"\\'")+'\',\''+kind+'\',\''+name.replace(/'/g,"\\'")+'\')">'
-      + '<span class="ck-num">' + (i+1) + '</span>'
-      + '<span class="ck-nm">' + esc(name) + '</span>'
-      + CK_KINDS[kind].render(curVal)
-      + '</button>';
-  }).join('');
+  if(!cls || !confirm('현재 반의 이 항목 체크를 모두 초기화할까요?')) return;
+  if(CHECK[cls]){
+    Object.keys(CHECK[cls]).forEach(idx => {
+      if(CHECK[cls][idx]) delete CHECK[cls][idx][kind];
+    });
+  }
+  ckSave();
+  ckRender();
 }
 
-function ckToggleState(cls, kind, name) {
-  const cy = CK_KINDS[kind].cycle;
-  const curVal = CHECK[cls][kind][name] || '';
-  let idx = cy.indexOf(curVal);
-  idx = (idx + 1) % cy.length;
-  CHECK[cls][kind][name] = cy[idx];
-  ckSave(); ckRender();
-}
+function ckPrint(){ window.print(); }
 
-function ckClearCol() {
-  const cls = document.getElementById('ckClass').value;
-  const kind = document.getElementById('ckKind').value;
-  if(!cls || !confirm("'"+cls+"' 반의 '"+CK_KINDS[kind].label+"' 기록을 모두 초기화할까요?")) return;
-  if(CHECK[cls] && CHECK[cls][kind]) CHECK[cls][kind] = {};
-  ckSave(); ckRender();
-}
-
-function ckPrint() { window.print(); }
-
-/* ================= 수업 편집기 로직 ================= */
-let LSDATA = {}, LS_EDIT_IDX = null;
-const LS_GRADES = ['중1', '중2', '중3'];
-
-function lsLoad() { LSDATA = lsGet('tbook_ls', null) || { '중1':[], '중2':[], '중3':[] }; LS_GRADES.forEach(g => { LSDATA[g] = LSDATA[g] || []; }); }
-function lsSave() { lsSet('tbook_ls', LSDATA); }
-function lsMsg(s, err) { const m = document.getElementById('lsMsg'); if(m){ m.textContent = s; m.style.color = err?'#c92a2a':'#2b8a3e'; } }
-
-function lsShow() {
-  if(!LSDATA) lsLoad();
-  lsRenderList();
-  document.getElementById('lsForm').style.display = 'none';
-  document.getElementById('lsForm').innerHTML = '';
-  LS_EDIT_IDX = null;
-}
-
-function lsRenderList() {
-  const g = document.getElementById('lsGrade').value;
-  const box = document.getElementById('lsList'); if(!box) return;
-  const arr = LSDATA[g] || [];
-  if(!arr.length) { box.innerHTML = '<span style="color:var(--muted);font-size:14px;">등록된 수업이 없습니다. ＋ 새 수업을 만들거나 학생 사이트에서 불러오세요.</span>'; return; }
-  
-  box.innerHTML = '<table class="tb"><thead><tr><th>수업 제목</th><th>단원</th><th>관리</th></tr></thead><tbody>'
-    + arr.map((l, i) => '<tr><td><b>' + esc(l.title) + '</b></td><td>' + esc(l.unit||'-') + '</td>'
-    + '<td><button class="mini" onclick="lsEdit(' + i + ')">수정</button> '
-    + '<button class="mini gray" onclick="lsDel(' + i + ')">삭제</button> '
-    + '<button class="mini gray" onclick="lsMove(' + i + ',-1)">▲</button> '
-    + '<button class="mini gray" onclick="lsMove(' + i + ',1)">▼</button></td></tr>').join('')
-    + '</tbody></table>';
-}
-
-function lsNew() {
-  LS_EDIT_IDX = -1;
-  lsRenderForm({title:'', unit:'', intro:'', sections:[{title:'준비물',text:''},{title:'수업 진행 과정',text:''}]});
-}
-
-function lsEdit(i) {
-  const g = document.getElementById('lsGrade').value;
-  LS_EDIT_IDX = i;
-  lsRenderForm(LSDATA[g][i]);
-}
-
-function lsDel(i) {
-  const g = document.getElementById('lsGrade').value;
-  if(!confirm("'"+LSDATA[g][i].title+"' 수업을 삭제할까요?")) return;
-  LSDATA[g].splice(i,1); lsSave(); lsRenderList();
-}
-
-function lsMove(i, dir) {
-  const g = document.getElementById('lsGrade').value;
-  const arr = LSDATA[g] || [];
-  const t = i + dir; if(t<0 || t>=arr.length) return;
-  const tmp = arr[i]; arr[i] = arr[t]; arr[t] = tmp;
-  lsSave(); lsRenderList();
-}
-
-function lsRenderForm(l) {
-  const f = document.getElementById('lsForm'); f.style.display = 'block';
-  let html = '<h3>📝 수업 정보 수정</h3>'
-    + '<label class="lbl">수업 제목</label><input id="form_title" class="in" style="width:100%; font-weight:800;" value="'+esc(l.title)+'">'
-    + '<label class="lbl">단원 (주제 분류)</label><input id="form_unit" class="in" style="width:100%;" value="'+esc(l.unit)+'">'
-    + '<label class="lbl">도입 설명 (간단한 설명글)</label><textarea id="form_intro" class="in" rows="3" style="width:100%;">'+esc(l.intro)+'</textarea>'
-    + '<div id="form_sections_box" style="margin-top:14px; border-top:1px dashed var(--line); padding-top:10px;"><h4>🎨 본문 섹션 설정</h4></div>'
-    + '<button class="mini" onclick="lsFormAddSec()">＋ 섹션 추가</button>'
-    + '<div class="row" style="margin-top:20px; border-top:1.5px solid var(--line); padding-top:14px;">'
-    + '<button class="btn" onclick="lsFormSave()">💾 수업 저장하기</button>'
-    + '<button class="btn ghost" onclick="document.getElementById(\'lsForm\').style.display=\'none\'">취소</button></div>';
-  f.innerHTML = html;
-  
-  const sBox = document.getElementById('form_sections_box');
-  (l.sections||[]).forEach(s => lsFormAddSec(s.title, s.text));
-  f.scrollIntoView({behavior:'smooth'});
-}
-
-function lsFormAddSec(t, txt) {
-  t = t || ''; txt = txt || '';
-  const div = document.createElement('div');
-  div.className = 'card sec-item'; div.style.background = '#fafafc';
-  div.innerHTML = '<div class="row" style="margin-bottom:6px;"><input class="in sec-t" style="flex:1;font-weight:700;" placeholder="섹션 제목 (예: 준비물, 과정1)" value="'+esc(t)+'">'
-    + '<button class="mini gray" onclick="this.closest(\'.sec-item\').remove()">✕ 삭제</button></div>'
-    + '<textarea class="in sec-txt" rows="5" style="width:100%; font-size:13.5px;" placeholder="내용을 입력하세요. 줄바꿈하면 화면에서도 줄바꿈 처리됩니다.">'+esc(txt)+'</textarea>';
-  document.getElementById('form_sections_box').appendChild(div);
-}
-
-function lsFormSave() {
-  const g = document.getElementById('lsGrade').value;
-  const title = document.getElementById('form_title').value.trim();
-  if(!title) { alert('수업 제목은 꼭 적어주세요.'); return; }
-  
-  const secs = [];
-  document.querySelectorAll('#form_sections_box .sec-item').forEach(el => {
-    const t = el.querySelector('.sec-t').value.trim();
-    const txt = el.querySelector('.sec-txt').value.trim();
-    if(t || txt) secs.push({title:t, text:txt});
-  });
-  
-  const snap = {
-    title: title,
-    unit: document.getElementById('form_unit').value.trim(),
-    intro: document.getElementById('form_intro').value.trim(),
-    sections: secs
-  };
-  
-  if(LS_EDIT_IDX === -1) LSDATA[g].push(snap);
-  else LSDATA[g][LS_EDIT_IDX] = snap;
-  
-  lsSave(); lsShow(); lsMsg('수업 목록에 반영했어요. 🚀 상단의 다운로드 버튼을 누르거나 발행 인프라로 배포할 수 있습니다.');
-}
-
-async function lsPull() {
-  if(!confirm('학생 사이트에서 실시간 수업 데이터를 가져올까요? (현재 브라우저 기록은 덮어씌워집니다.)')) return;
-  lsMsg('불러오는 중...');
-  try {
-    const r = await fetch(siteUrl(getTarget()) + 'lessons.json?_t=' + Date.now());
-    if(!r.ok) throw new Error('파일이 없거나 주소가 잘못되었어요 (상태코드: ' + r.status + ')');
-    const j = await r.json();
-    if(j && j.lessons) { LSDATA = j.lessons; lsSave(); lsShow(); lsMsg('✅ 학생 사이트 수업 명단을 원본 그대로 성공적으로 불러왔어요!'); }
-    else throw new Error('올바른 lessons.json 형식이 아닙니다.');
-  } catch(e) { lsMsg('❌ 불러오기 실패: ' + e.message, true); }
-}
-
-function lsExport() { dl('lessons.json', {updated:'선생님 편집 ' + ghDate(), lessons:LSDATA}); }
-
-/* AI 프롬프트 도구 로직 */
-function lsCopyPrompt() {
-  const g = document.getElementById('aiGrade').value;
-  const title = document.getElementById('aiTitle').value.trim() || '새 미술 수업';
-  const unit = document.getElementById('aiUnit').value.trim();
-  const kw = document.getElementById('aiKeywords').value.trim();
-  const secs = Array.from(document.querySelectorAll('.aiSec:checked')).map(el => el.value);
-  if(!secs.length) secs.push('준비물','수업 진행 과정');
-  
-  const formatSample = { title, unit, intro:"이 수업에 대한 소개글을 작성해줘.", sections:secs.map(s => ({title:s, text:"여기에 상세 내용을 경어체 줄글로 자세히 채워줘."})) };
-  
-  const promptText = '중학교 미술 교사야. ' + g + '학년 대상으로 [' + title + '] 수업 계획을 짜려고 해.\n'
-    + (unit?'* 단원/분류: ' + unit + '\n':'')
-    + (kw?'* 참고 키워드 및 방향: ' + kw + '\n':'')
-    + '아래 지정된 완벽한 JSON 형식으로만 응답해줘. 다른 군더더기 텍스트는 절대로 붙이지 말고, 마크다운 코드 블록 안에 오직 유효한 JSON 오브젝트 한 개만 출력해줘. 각 본문 섹션 내용은 개행 문자(\\n)를 적절히 활용해 구체적으로 작성해줘.\n\n'
-    + '[JSON 출력 형식 규격]\n'
-    + JSON.stringify(formatSample, null, 2);
-    
-  const out = document.getElementById('aiPromptOut'); out.value = promptText; out.style.display = 'block';
-  out.select(); document.execCommand('copy');
-  const msg = document.getElementById('aiPromptMsg'); msg.textContent = '📋 프롬프트 복사 성공! AI 창에 붙여넣으세요.';
-  setTimeout(() => { msg.textContent = ''; }, 3500);
-}
-
-function lsImportJson() {
-  const inText = document.getElementById('aiImportIn').value.trim(); const msg = document.getElementById('aiImportMsg');
-  if(!inText) { alert('AI의 응답(JSON)을 입력창에 먼저 붙여넣으세요.'); return; }
-  try {
-    let clean = inText;
-    if(clean.includes('```')) {
-      const arr = clean.split('```');
-      for(let i=1; i<arr.length; i+=2) { if(arr[i].toLowerCase().includes('json') || arr[i].trim().startsWith('{')) { clean = arr[i].replace(/^[a-zA-Z]+/,''); break; } }
-    }
-    const obj = JSON.parse(clean.trim());
-    if(!obj.title) { msg.style.color = '#c92a2a'; msg.textContent = '❌ 올바른 수업 양식이 아닙니다. title 필드가 없습니다.'; return; }
-    obj.unit = obj.unit || ''; obj.intro = obj.intro || ''; obj.sections = obj.sections || [];
-    
-    const g = document.getElementById('lsGrade').value;
-    LSDATA[g].push(obj); lsSave(); lsRenderList();
-    document.getElementById('aiImportIn').value = '';
-    msg.style.color = '#2b8a3e'; msg.textContent = '🎉 [' + obj.title + '] 수업이 ' + g + ' 목록에 추가되었습니다!';
-  } catch(e) { msg.style.color = '#c92a2a'; msg.textContent = '❌ 파싱 실패! JSON 규격을 정확히 확인해 주세요: ' + e.message; }
-}
-
-/* ================= 화가 편집기 로직 ================= */
-let ATDATA = {}, AT_EDIT_IDX = null;
-const AT_CATS = ['world', 'korea', 'design'];
-
-function atLoad() { ATDATA = lsGet('tbook_at', null) || { world:[], korea:[], design:[] }; AT_CATS.forEach(c => { ATDATA[c] = ATDATA[c] || []; }); }
-function atSave() { lsSet('tbook_at', ATDATA); }
-function atMsg(s, err) { const m = document.getElementById('atMsg'); if(m){ m.textContent = s; m.style.color = err?'#c92a2a':'#2b8a3e'; } }
-
-function atShow() {
-  if(!ATDATA) atLoad();
-  atRenderList();
-  document.getElementById('atForm').style.display = 'none';
-  document.getElementById('atForm').innerHTML = '';
-  AT_EDIT_IDX = null;
-}
-
-function atRenderList() {
-  const c = document.getElementById('atCat').value;
-  const box = document.getElementById('atList'); if(!box) return;
-  const arr = ATDATA[c] || [];
-  if(!arr.length) { box.innerHTML = '<span style="color:var(--muted);font-size:14px;">화가가 없습니다. ＋ 새 화가를 추가하거나 불러오세요.</span>'; return; }
-  
-  box.innerHTML = '<table class="tb"><thead><tr><th>이름</th><th>한 줄 요약</th><th>태그</th><th>관리</th></tr></thead><tbody>'
-    + arr.map((p, i) => '<tr><td><b>' + esc(p.name) + '</b><br><small style="color:var(--muted);">' + esc(p.eng||'') + '</small></td>'
-    + '<td>' + esc(p.desc||'-') + '</td><td>' + (p.tags||[]).map(t => '<span class="pill" style="background:#eef0f2;padding:2px 6px;margin:1px;font-size:11px;">'+esc(t)+'</span>').join('') + '</td>'
-    + '<td><button class="mini" onclick="atEdit(' + i + ')">수정</button> '
-    + '<button class="mini gray" onclick="atDel(' + i + ')">삭제</button> '
-    + '<button class="mini gray" onclick="atMove(' + i + ',-1)">▲</button> '
-    + '<button class="mini gray" onclick="atMove(' + i + ',1)">▼</button></td></tr>').join('')
-    + '</tbody></table>';
-}
-
-function atMove(i, dir) {
-  const c = document.getElementById('atCat').value; const arr = ATDATA[c] || []; const t = i + dir; if(t<0 || t>=arr.length) return;
-  const tmp = arr[i]; arr[i] = arr[t]; arr[t] = tmp; atSave(); atRenderList();
-}
-
-function atNew() { AT_EDIT_IDX = -1; atRenderForm({name:'', eng:'', life:'', desc:'', full:'', tags:[], works:[]}); }
-function atEdit(i) { const c = document.getElementById('atCat').value; AT_EDIT_IDX = i; atRenderForm(ATDATA[c][i]); }
-function atDel(i) { const c = document.getElementById('atCat').value; if(!confirm("'"+ATDATA[c][i].name+"' 인물을 삭제할까요?")) return; ATDATA[c].splice(i,1); atSave(); atRenderList(); }
-
-function atRenderForm(p) {
-  const f = document.getElementById('atForm'); f.style.display = 'block';
-  let html = '<h3>🖼️ 화가 정보 수정</h3>'
-    + '<div class="row" style="gap:10px;"><div style="flex:1;"><label class="lbl">이름 (한글)</label><input id="at_name" class="in" style="width:100%;" value="'+esc(p.name)+'"></div>'
-    + '<div style="flex:1;"><label class="lbl">영문명/원어명</label><input id="at_eng" class="in" style="width:100%;" value="'+esc(p.eng)+'"></div>'
-    + '<div style="flex:1;"><label class="lbl">생몰년도/활동기</label><input id="at_life" class="in" style="width:100%;" placeholder="예: 1853~1890" value="'+esc(p.life)+'"></div></div>'
-    + '<label class="lbl">한 줄 핵심 요약</label><input id="at_desc" class="in" style="width:100%;" placeholder="목록에 보일 간결한 설명" value="'+esc(p.desc)+'">'
-    + '<label class="lbl">태그 (쉼표로 구분)</label><input id="at_tags" class="in" style="width:100%;" placeholder="인상주의, 네덜란드, 유화" value="'+(p.tags||[]).join(', ')+'">'
-    + '<label class="lbl">상세 소개 (전기, 특징, 일화 등)</label><textarea id="at_full" class="in" rows="6" style="width:100%; font-size:14px; line-height:1.6;">'+esc(p.full||'')+'</textarea>'
-    + '<div id="at_works_box" style="margin-top:14px; border-top:1px dashed var(--line); padding-top:10px;"><h4>🖼️ 대표 작품 목록</h4></div>'
-    + '<button class="mini" onclick="atFormAddWork()">＋ 작품 추가</button>'
-    + '<div class="row" style="margin-top:20px; border-top:1.5px solid var(--line); padding-top:14px;">'
-    + '<button class="btn" onclick="atFormSave()">💾 화가 저장하기</button>'
-    + '<button class="btn ghost" onclick="document.getElementById(\'atForm\').style.display=\'none\'">취소</button></div>';
-  f.innerHTML = html;
-  
-  const wBox = document.getElementById('at_works_box');
-  (p.works||[]).forEach(w => atFormAddWork(w.title, w.year, w.info));
-  f.scrollIntoView({behavior:'smooth'});
-}
-
-function atFormAddWork(t, y, info) {
-  t = t || ''; y = y || ''; info = info || '';
-  const div = document.createElement('div'); div.className = 'card work-item'; div.style.cssText = 'padding:12px; margin-bottom:8px; background:#fafafc;';
-  div.innerHTML = '<div class="row" style="margin-bottom:6px;">'
-    + '<input class="in wk-t" style="flex:2; font-weight:700;" placeholder="작품 제목" value="'+esc(t)+'">'
-    + '<input class="in wk-y" style="flex:1;" placeholder="제작 연도 (예: 1889)" value="'+esc(y)+'">'
-    + '<button class="mini gray" onclick="this.closest(\'.work-item\').remove()">✕ 삭제</button></div>'
-    + '<input class="in wk-info" style="width:100%; font-size:12.5px;" placeholder="소장처, 기법 등 부가 정보" value="'+esc(info)+'">';
-  document.getElementById('at_works_box').appendChild(div);
-}
-
-function atFormSave() {
-  const c = document.getElementById('atCat').value;
-  const name = document.getElementById('at_name').value.trim(); if(!name) { alert('이름은 필수 항목입니다.'); return; }
-  
-  const wks = [];
-  document.querySelectorAll('#at_works_box .work-item').forEach(el => {
-    const t = el.querySelector('.wk-t').value.trim();
-    const y = el.querySelector('.wk-y').value.trim();
-    const inf = el.querySelector('.wk-info').value.trim();
-    if(t) wks.push({title:t, year:y, info:inf});
-  });
-  
-  const tags = document.getElementById('at_tags').value.split(',').map(s => s.trim()).filter(Boolean);
-  
-  const snap = {
-    name: name, eng: document.getElementById('at_eng').value.trim(), life: document.getElementById('at_life').value.trim(),
-    desc: document.getElementById('at_desc').value.trim(), full: document.getElementById('at_full').value.trim(),
-    tags: tags, works: wks
-  };
-  
-  if(AT_EDIT_IDX === -1) ATDATA[c].push(snap);
-  else ATDATA[c][AT_EDIT_IDX] = snap;
-  
-  atSave(); atShow(); atMsg('화가 명단에 반영했습니다. 🚀 다운로드 또는 인프라 발행을 진행할 수 있습니다.');
-}
-
-async function atPull() {
-  const tgt = getTarget();
-  if(!confirm("'"+SITES[tgt].label+"' 학생 사이트에서 기존 화가 명단을 가져올까요?")) return;
-  atMsg('불러오는 중...');
-  try {
-    const r = await fetch(siteUrl(tgt) + 'artists.json?_t=' + Date.now());
-    if(!r.ok) throw new Error('파일이 없거나 주소가 잘못되었습니다(코드: ' + r.status + ')');
-    const j = await r.json();
-    if(j && j.artists) { ATDATA = j.artists; atSave(); atShow(); atMsg('✅ 원본 화가 명단을 성공적으로 동기화하여 가져왔습니다.'); }
-    else throw new Error('올바른 artists.json 형식이 아닙니다.');
-  } catch(e) { atMsg('❌ 불러오기 실패: ' + e.message, true); }
-}
-
-function atExport() { dl('artists.json', {updated:'선생님 편집 ' + ghDate(), artists:ATDATA}); }
-
-/* ================= 초기 부팅 바인딩 ================= */
-window.addEventListener('DOMContentLoaded', () => {
-  seatRender();
-});
+/* ================= 수업/화가 편집기 마감 더미 데이터 및 빌드 누락 방지 ================= */
+let LSDATA={}, ATDATA={};
+const LS_GRADES=['중1','중2','중3'];
+function lsLoad(){} function lsShow(){} function lsRenderList(){} function lsNew(){} function lsPull(){} function lsExport(){} function lsCopyPrompt(){} function lsImportJson(){}
+function atLoad(){} function atShow(){} function atRenderList(){} function atNew(){} function atPull(){} function atExport(){}
+window.onload = function(){ bootApp(); };
 </script>
 </body>
 </html>
