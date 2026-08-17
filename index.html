@@ -219,7 +219,11 @@
               <button class="mini gray" onclick="seatDelClass()">현재 반 삭제</button>
             </div>
             <label class="lbl">🧑‍🎓 학생 명단 (한 줄에 한 명)</label>
-            <textarea id="seatRoster" rows="4" class="in" style="width:100%;" placeholder="김미술&#10;이그림"></textarea>
+            <textarea id="seatRoster" rows="4" class="in" style="width:100%;" placeholder="김미술&#10;이그림"></textarea><div style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff8f0;">
+<label class="lbl">오늘 결석자 체크</label>
+<div id="seatAbsentBox"></div>
+<div style="font-size:12px;color:var(--muted);margin-top:6px;">체크한 학생은 랜덤 뽑기·모둠 편성·도우미 등 다른 페이지에서 자동 제외됩니다. 날짜가 바뀌면 자동으로 초기화됩니다.</div>
+</div>
             <div class="row" style="margin-top:8px;"><button class="mini" onclick="seatSaveRoster()">명단 저장</button><span id="seatMsg" style="font-size:12.5px;color:#2b8a3e;"></span></div>
 
             <label class="lbl">🔗 짝 규칙 (명단 저장 후 선택)</label>
@@ -330,16 +334,15 @@
         <h2 class="title">🎲 랜덤 뽑기</h2>
         <p class="lead">발표자나 모둠을 랜덤으로 정해요. 이름을 넣거나 자리배치의 반 명단을 불러올 수 있어요.</p>
         <div class="card">
-          <label class="lbl">🏫 반 선택 — 선택한 반 안에서만 랜덤으로 뽑아요</label>
-          <div id="pickClassTabs" class="row" style="margin-bottom:8px;"></div>
-          <div class="row" style="margin-bottom:8px;">
-            <span id="pickClassHint" style="font-size:12.5px;color:var(--muted);"></span>
-            <button class="mini gray" onclick="pickRefreshClasses()">↻ 반 목록 새로고침</button>
-          </div>
-          <label class="lbl">이름 명단 (선택한 반의 명단)</label>
-          <textarea id="pickRoster" rows="4" class="in" style="width:100%;" placeholder="먼저 위에서 반을 선택하세요."></textarea>
-          <div class="row" style="margin-top:8px;"><button class="mini gray" onclick="pickLoadClass()">📋 선택한 반 명단 불러오기</button></div>
-          <div class="row" style="margin-top:12px;">
+          <label class="lbl">대상 반</label>
+           <div class="row" style="margin-bottom:10px;">
+             <select id="pickClass" class="in" style="min-width:180px;" onchange="pickSyncRoster()"></select>
+             <button class="mini gray" onclick="pickLoadClass()">명단 새로고침</button>
+           </div>
+           <label class="lbl">오늘 출석 학생</label>
+           <textarea id="pickRoster" rows="4" class="in" style="width:100%;" readonly></textarea>
+           <div style="font-size:12.5px;color:var(--muted);margin-top:6px;">미술실 자리배치에서 체크한 오늘 결석자는 자동으로 제외됩니다.</div>
+           <div class="row" style="margin-top:12px;">
             <button class="btn warm" onclick="pickOne()">🎯 한 명 뽑기 (발표자)</button>
             <button class="btn ghost" onclick="pickGroups()">👥 모둠으로 나누기</button>
             <input id="pickGroupN" class="in" style="width:110px;" type="number" min="2" value="4" title="한 모둠 인원">
@@ -624,6 +627,15 @@ function seatRenderAll(){
   document.getElementById('classTabs').innerHTML=Object.keys(SEAT.classes).map(n=>'<button class="seg'+(n===SEAT.current?' sel':'')+'" onclick="seatPickClass(\''+n.replace(/'/g,"\\'")+'\')">'+esc(n)+'</button>').join('');
   const c=cur();
   document.getElementById('seatRoster').value=(c.students||[]).join('\n');
+   const absentBox=document.getElementById('seatAbsentBox');
+   if(absentBox){
+     const absent=new Set(getAbsent(SEAT.current));
+     absentBox.innerHTML=(c.students||[]).map(n=>
+       '<label style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;cursor:pointer;">'
+       +'<input type="checkbox" '+(absent.has(n)?'checked':'')+' onchange="seatToggleAbsent('+JSON.stringify(n)+')"> '
+       +esc(n)+'</label>'
+     ).join('') || '<span style="color:var(--muted);">학생 명단을 먼저 저장하세요.</span>';
+   }
   const sizes=[[1,'1인'],[2,'2인'],[4,'4인 모둠'],[6,'6인 모둠'],[8,'8인 모둠']];
   document.getElementById('groupSizeSeg').innerHTML=sizes.map(s=>'<button class="seg'+(c.groupSize===s[0]?' sel':'')+'" onclick="seatSetSize('+s[0]+')">'+s[1]+'</button>').join('');
   document.getElementById('groupCount').value=c.groupCount; document.getElementById('gcVal').textContent=c.groupCount;
@@ -644,10 +656,10 @@ function seatRenderGrid(){
     grid.appendChild(box); }
 }
 function seatClick(i){ if(seatSel===null) seatSel=i; else if(seatSel===i) seatSel=null; else { const c=cur(); const t=c.seats[seatSel]||null; c.seats[seatSel]=c.seats[i]||null; c.seats[i]=t; seatSel=null; seatSave(); } seatRenderGrid(); }
-function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderAll(); }
+function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderAll(); if(typeof pickRenderClasses==='function')pickRenderClasses(); }
 function seatAddClass(){ const el=document.getElementById('newClass'); const n=(el.value||'').trim(); if(!n)return; if(!SEAT.classes[n]) SEAT.classes[n]={students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}}; SEAT.current=n; el.value=''; seatSave(); seatRenderAll(); }
 function seatDelClass(){ if(Object.keys(SEAT.classes).length<=1){ alert('반이 하나뿐이라 삭제할 수 없어요.'); return; } if(!confirm("'"+SEAT.current+"' 반을 삭제할까요?"))return; delete SEAT.classes[SEAT.current]; SEAT.current=Object.keys(SEAT.classes)[0]; seatSave(); seatRenderAll(); }
-function seatSaveRoster(){ cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean); seatSave('명단을 저장했어요 ('+cur().students.length+'명).'); seatRenderPairs(); }
+function seatSaveRoster(){ cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean); setAbsent(SEAT.current,getAbsent(SEAT.current).filter(n=>cur().students.includes(n))); seatSave('명단을 저장했어요 ('+cur().students.length+'명).'); seatRenderPairs(); if(typeof pickRenderClasses==='function')pickRenderClasses(); }
 function seatSetSize(v){ cur().groupSize=v; seatResize(); seatSave(); seatRenderAll(); }
 function seatRenderPairs(){
   const c=cur(); const opts='<option value="">학생 선택</option>'+(c.students||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join('');
@@ -732,56 +744,110 @@ function clRender(){
   ).join('') : '<div style="color:var(--muted);font-size:14px;">준비물을 추가해 보세요.</div>';
 }
 
+
+/* ================= 미술실 결석자 연동 =================
+   결석자는 '날짜별'로 저장됩니다.
+   날짜가 바뀌면 전날 결석 기록은 자동으로 초기화됩니다.
+*/
+function todayKey(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function absentKey(cls){ return 'tbook_absent_'+cls; }
+function getAbsent(cls){
+  const raw=lsGet(absentKey(cls),null);
+  if(!raw || raw.date!==todayKey()){
+    const fresh={date:todayKey(),students:[]};
+    lsSet(absentKey(cls),fresh);
+    return [];
+  }
+  return Array.isArray(raw.students)?raw.students:[];
+}
+function setAbsent(cls,list){
+  lsSet(absentKey(cls),{date:todayKey(),students:list});
+}
+function getActiveRoster(cls){
+  if(!SEAT) seatLoad();
+  const c=SEAT.classes[cls];
+  if(!c) return [];
+  const absent=new Set(getAbsent(cls));
+  return (c.students||[]).filter(Boolean).filter(n=>!absent.has(n));
+}
+function seatToggleAbsent(name){
+  const cls=SEAT.current;
+  let a=getAbsent(cls);
+  a=a.includes(name)?a.filter(x=>x!==name):a.concat(name);
+  setAbsent(cls,a);
+  seatRenderAll();
+  if(typeof pickRenderClasses==='function') pickRenderClasses();
+}
 /* ================= 랜덤 뽑기 ================= */
-let PICK_CLASS='';
-function pickClasses(){
-  if(!SEAT) seatLoad();
-  const my=getMyClasses();
-  const seatClasses=Object.keys(SEAT.classes||{});
-  return my.length ? my.filter(c=>SEAT.classes[c]) : seatClasses;
+function pickClasses(){ if(!SEAT)seatLoad(); return Object.keys(SEAT.classes||{}); }
+function pickCurrentClass(){
+  const e=document.getElementById('pickClass');
+  return e?e.value:(SEAT?SEAT.current:'');
 }
-function pickRefreshClasses(){
-  if(!SEAT) seatLoad();
-  const classes=pickClasses();
-  const tabs=document.getElementById('pickClassTabs');
-  if(!tabs)return;
-  if(!classes.length){
-    PICK_CLASS='';
-    tabs.innerHTML='<span style="font-size:13px;color:var(--muted);">등록된 반이 없어요. 설정에서 담당 반을 먼저 등록하세요.</span>';
-    document.getElementById('pickClassHint').textContent='';
-    return;
-  }
-  if(!PICK_CLASS || !classes.includes(PICK_CLASS)) PICK_CLASS=classes[0];
-  tabs.innerHTML=classes.map(c=>'<button class="seg'+(c===PICK_CLASS?' sel':'')+'" onclick="pickSelectClass(\''+c.replace(/'/g,"\'")+ '\')">'+esc(c)+'</button>').join('');
-  const c=SEAT.classes[PICK_CLASS];
-  document.getElementById('pickClassHint').textContent=PICK_CLASS+' · '+((c&&c.students)||[]).length+'명';
-  pickLoadClass(false);
+function pickNames(){
+  const cls=pickCurrentClass();
+  if(cls && SEAT && SEAT.classes[cls]) return getActiveRoster(cls);
+  return document.getElementById('pickRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
 }
-function pickSelectClass(cls){
-  PICK_CLASS=cls;
-  pickRefreshClasses();
+function pickRenderClasses(){
+  if(!SEAT)seatLoad();
+  const e=document.getElementById('pickClass');
+  if(!e)return;
+  const cls=pickClasses();
+  e.innerHTML=cls.length
+    ?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+' ('+getActiveRoster(c).length+'명)</option>').join('')
+    :'<option value="">반 없음</option>';
+  if(cls.includes(SEAT.current))e.value=SEAT.current;
+  pickSyncRoster();
 }
-function pickLoadClass(showAlert=true){
-  if(!SEAT) seatLoad();
-  if(!PICK_CLASS) pickRefreshClasses();
-  const c=SEAT.classes[PICK_CLASS];
-  const st=(c&&c.students)||[];
-  if(!st.length){
-    if(showAlert) alert(PICK_CLASS ? PICK_CLASS+' 반에 저장된 명단이 없어요.' : '먼저 반을 선택하세요.');
-    document.getElementById('pickRoster').value='';
-    return;
-  }
-  document.getElementById('pickRoster').value=st.join('\n');
+function pickSyncRoster(){
+  const cls=pickCurrentClass();
+  const r=document.getElementById('pickRoster');
+  if(r)r.value=cls?getActiveRoster(cls).join('\n'):'';
 }
-function pickNames(){ return document.getElementById('pickRoster').value.split('\n').map(s=>s.trim()).filter(Boolean); }
-function pickOne(){ const n=pickNames(); const out=document.getElementById('pickResult'); document.getElementById('pickGroupsOut').innerHTML=''; if(!n.length){ out.textContent='이름을 먼저 넣어주세요'; return; }
-  let cnt=0; const iv=setInterval(()=>{ out.textContent=n[Math.floor(Math.random()*n.length)]; if(++cnt>12){ clearInterval(iv); out.textContent='🎉 '+n[Math.floor(Math.random()*n.length)]; } },70); }
-function pickGroups(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='👥 모둠 편성'; const k=Math.max(2,+document.getElementById('pickGroupN').value||4); if(!n.length){ out.innerHTML=''; return; }
-  const groups=[]; for(let i=0;i<n.length;i+=k) groups.push(n.slice(i,i+k));
-  out.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:12px;">'+groups.map((g,i)=>'<div class="group" style="min-width:150px;"><div style="font-weight:800;margin-bottom:6px;color:var(--brand);">'+(i+1)+'모둠</div>'+g.map(x=>'<div class="seat" style="cursor:default;min-height:38px;">'+esc(x)+'</div>').join('')+'</div>').join('')+'</div>'; }
-function pickHelper(){ const n=sShuf(pickNames()); const out=document.getElementById('pickResult'); document.getElementById('pickGroupsOut').innerHTML=''; if(!n.length){ out.textContent='이름을 먼저 넣어주세요'; return; }
-  const k=Math.max(1,+document.getElementById('pickHelperN').value||1); const chosen=n.slice(0,k);
-  out.innerHTML='🙋 오늘의 도우미<div style="font-size:34px; font-weight:800; margin-top:8px; color:var(--brand);">'+chosen.map(esc).join(' · ')+'</div>'; }
+function pickLoadClass(){ pickSyncRoster(); }
+function pickOne(){
+  const n=pickNames(),out=document.getElementById('pickResult');
+  document.getElementById('pickGroupsOut').innerHTML='';
+  if(!n.length){out.textContent='현재 출석 학생이 없어요';return;}
+  let cnt=0;
+  const iv=setInterval(()=>{
+    out.textContent=n[Math.floor(Math.random()*n.length)];
+    if(++cnt>12){
+      clearInterval(iv);
+      out.textContent='🎉 '+n[Math.floor(Math.random()*n.length)];
+    }
+  },70);
+}
+function pickGroups(){
+  const n=sShuf(pickNames()),out=document.getElementById('pickGroupsOut');
+  document.getElementById('pickResult').textContent='👥 모둠 편성';
+  const k=Math.max(2,+document.getElementById('pickGroupN').value||4);
+  if(!n.length){out.innerHTML='현재 출석 학생이 없어요';return;}
+  const groups=[];
+  for(let i=0;i<n.length;i+=k)groups.push(n.slice(i,i+k));
+  out.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:12px;">'
+    +groups.map((g,i)=>'<div class="group" style="min-width:150px;">'
+    +'<div style="font-weight:800;margin-bottom:6px;color:var(--brand);">'+(i+1)+'모둠</div>'
+    +g.map(x=>'<div class="seat" style="cursor:default;min-height:38px;">'+esc(x)+'</div>').join('')
+    +'</div>').join('')+'</div>';
+}
+function pickHelper(){
+  const n=sShuf(pickNames()),out=document.getElementById('pickResult');
+  document.getElementById('pickGroupsOut').innerHTML='';
+  if(!n.length){out.textContent='현재 출석 학생이 없어요';return;}
+  const k=Math.max(1,+document.getElementById('pickHelperN').value||1);
+  const chosen=n.slice(0,k);
+  out.innerHTML='🙋 오늘의 도우미<div style="font-size:34px;font-weight:800;margin-top:8px;color:var(--brand);">'
+    +chosen.map(esc).join(' · ')+'</div>';
+}
+
 const CLEAN_ROLES=['바닥 쓸기','책상 닦기','붓·팔레트 정리','작품 걷기','재료 정리'];
 function pickCleanRoles(){ const n=sShuf(pickNames()); const out=document.getElementById('pickGroupsOut'); document.getElementById('pickResult').textContent='🧹 오늘의 정리 담당'; if(!n.length){ out.innerHTML='이름을 먼저 넣어주세요'; return; }
   const rows=CLEAN_ROLES.map((r,i)=> n[i]?('<tr><td style="padding:8px 12px; font-weight:700; white-space:nowrap;">'+r+'</td><td style="padding:8px 12px;">'+esc(n[i])+'</td></tr>'):'').join('');
@@ -987,7 +1053,7 @@ function planToggleEvent(i){ PLAN.rows[i].event=!PLAN.rows[i].event; planSaveLs(
 function planPrint(){ window.print(); }
 
 /* ================= 부팅 ================= */
-function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); matRender(); clRender(); memoInit(); timerShow(); scLoad(); ckLoad(); lsLoad(); atLoad();
+function bootApp(){ seatLoad(); matLoad(); clLoad(); planLoad(); seatRenderAll(); pickRenderClasses(); matRender(); clRender(); memoInit(); timerShow(); scLoad(); ckLoad(); lsLoad(); atLoad();
   const my=getMyClasses(); const s=document.getElementById('setCls'); if(s) s.value=my.join('\n');
   const uf=document.getElementById('setUrlFunart'); if(uf) uf.value=siteUrl('funart');
   const ua=document.getElementById('setUrlArtclass'); if(ua) ua.value=siteUrl('artclass');
