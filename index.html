@@ -70,7 +70,7 @@
   table.tb th,table.tb td{border-bottom:1px solid var(--line); padding:9px 8px; text-align:left; vertical-align:middle;}
   table.tb th{color:var(--muted); font-weight:700; background:#faf8f4;}
   .pill{display:inline-block; border-radius:20px; padding:3px 11px; font-size:12px; font-weight:800;}
-  .pill.ok">background:#e6f7ec; color:#2b8a3e;} .pill.low{background:#fff3bf; color:#a97b06;} .pill.no{background:#ffe3e3; color:#c92a2a;}
+  .pill.ok{background:#e6f7ec; color:#2b8a3e;} .pill.low{background:#fff3bf; color:#a97b06;} .pill.no{background:#ffe3e3; color:#c92a2a;}
   /* seating (재사용) */
   .seat-front{background:linear-gradient(180deg,#3a2f4a,#2c2a33); color:#fff; text-align:center; border-radius:12px; padding:11px; font-weight:800; margin:0 0 18px; letter-spacing:.15em;}
   .seat-grid{display:flex; flex-wrap:wrap; gap:16px; justify-content:center;}
@@ -472,7 +472,7 @@
         </div>
         <div class="card">
           <div class="row" style="align-items:center; gap:10px; flex-wrap:wrap;">
-            <label class="lbl">분류</label>
+            <label class="lbl" style="margin:0;">분류</label>
             <select id="atCat" class="in" style="width:auto; min-width:130px;" onchange="atRenderList()">
               <option value="world">해외 화가</option><option value="korea">국내 화가</option><option value="design">디자이너</option>
             </select>
@@ -539,9 +539,9 @@
           <h3>🎨 학생 사이트 주소</h3>
           <p style="font-size:13.5px;color:var(--muted);">두 학생 사이트의 인터넷 주소예요. 편집기의 '불러오기·미리보기'와 사이드바 '학생 화면으로 가기'가 이 주소를 사용해요. (GitHub Pages 주소)</p>
           <label class="lbl">📚 funart (내 수업 사이트)</label>
-          <input id="setUrlFunart" class="in" style="width:100%;" placeholder="[https://아이디.github.io/funart/](https://아이디.github.io/funart/)">
+          <input id="setUrlFunart" class="in" style="width:100%;" placeholder="https://아이디.github.io/funart/">
           <label class="lbl">🎨 artclass (공용 사이트)</label>
-          <input id="setUrlArtclass" class="in" style="width:100%;" placeholder="[https://아이디.github.io/artclass/](https://아이디.github.io/artclass/)">
+          <input id="setUrlArtclass" class="in" style="width:100%;" placeholder="https://아이디.github.io/artclass/">
           <div class="row" style="margin-top:10px;"><button class="btn" onclick="saveStudentUrl()">저장</button><span id="stuMsg" style="font-size:13px;color:#2b8a3e;"></span></div>
         </div>
         <div class="card" style="background:#f3f7ff; border-color:#d6e4ff;">
@@ -617,7 +617,7 @@ function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){}
 
 /* ================= 자리배치 ================= */
 let SEAT=null, seatSel=null;
-function seatDefault(){ return {current:'우리 반', roles:{A:'바닥쓸기',B:'나누미',C:'정돈이',D:'제출이'}, classes:{ '우리 반':{students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}} } }; }
+function seatDefault(){ return { current:'우리 반', roles:{A:'바닥쓸기',B:'나누미',C:'정돈이',D:'제출이'}, classes:{ '우리 반':{students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}} } }; }
 function seatLoad(){ SEAT=lsGet('tbook_seat',null)||seatDefault(); if(!SEAT.classes||!Object.keys(SEAT.classes).length) SEAT=seatDefault(); if(!SEAT.roles) SEAT.roles={A:'바닥쓸기',B:'나누미',C:'정돈이',D:'제출이'}; if(!SEAT.current||!SEAT.classes[SEAT.current]) SEAT.current=Object.keys(SEAT.classes)[0]; }
 function seatSave(msg){ lsSet('tbook_seat',SEAT); if(msg){ const m=document.getElementById('seatMsg'); if(m){ m.textContent=msg; setTimeout(()=>{m.textContent='';},2600);} } }
 function cur(){ return SEAT.classes[SEAT.current]; }
@@ -661,12 +661,96 @@ function seatPickClass(n){ SEAT.current=n; seatSel=null; document.getElementById
 function seatAddClass(){ const el=document.getElementById('newClass'); const n=(el.value||'').trim(); if(!n)return; if(!SEAT.classes[n]) SEAT.classes[n]={students:[],groupSize:4,groupCount:6,seats:new Array(24).fill(null),roleOffset:{}}; SEAT.current=n; el.value=''; seatSave(); seatRenderAll(); }
 function seatDelClass(){ if(Object.keys(SEAT.classes).length<=1){ alert('반이 하나뿐이라 삭제할 수 없어요.'); return; } if(!confirm("'"+SEAT.current+"' 반을 삭제할까요?"))return; delete SEAT.classes[SEAT.current]; SEAT.current=Object.keys(SEAT.classes)[0]; seatSave(); seatRenderAll(); }
 function seatSaveRoster(){
-  cur().students=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const oldStudents=cur().students||[];
+  const newStudents=document.getElementById('seatRoster').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  cur().students=newStudents;
   setAbsent(SEAT.current,getAbsent(SEAT.current).filter(n=>cur().students.includes(n)));
   seatSave('명단을 저장했어요 ('+cur().students.length+'명).');
+  // ===== 학생 체크 데이터 자동 동기화 =====
+  syncCheckWithRoster(SEAT.current, oldStudents, newStudents);
   seatRenderPairs();
   seatRenderAll();
   syncClassRosterEverywhere();
+}
+
+function syncCheckWithRoster(cls, oldRoster, newRoster){
+  if(!CHECK) ckLoad();
+  if(!CHECK[cls]) return; // 이 반의 체크 데이터가 없으면 끝
+
+  const oldSet=new Set(oldRoster);
+  const newSet=new Set(newRoster);
+
+  // 1. 삭제된 학생의 데이터 제거 (전학)
+  Object.keys(CHECK[cls]).forEach(name=>{
+    if(!newSet.has(name)){
+      delete CHECK[cls][name];
+    }
+  });
+
+  // 2. 이름이 바뀐 학생 처리
+  // 2-1. 이전 명단에만 있는 학생을 찾음
+  const deletedInOld=oldRoster.filter(name=>!newSet.has(name));
+  // 2-2. 새 명단에만 있는 학생을 찾음
+  const addedInNew=newRoster.filter(name=>!oldSet.has(name));
+
+  // 2-3. 각 새 학생마다 가장 가까운 이전 학생을 매칭 (이름 변경 감지)
+  // Levenshtein 거리로 가장 비슷한 이름을 찾음
+  if(deletedInOld.length>0 && addedInNew.length>0){
+    const toDelete=[...deletedInOld];
+    const toAdd=[...addedInNew];
+
+    while(toDelete.length>0 && toAdd.length>0){
+      let bestDist=Infinity, bestDelIdx=0, bestAddIdx=0;
+
+      // 문자열 거리 계산
+      function editDist(a,b){
+        const m=a.length, n=b.length;
+        const dp=Array(m+1).fill(0).map(()=>Array(n+1).fill(0));
+        for(let i=0;i<=m;i++)dp[i][0]=i;
+        for(let j=0;j<=n;j++)dp[0][j]=j;
+        for(let i=1;i<=m;i++){
+          for(let j=1;j<=n;j++){
+            if(a[i-1]===b[j-1]) dp[i][j]=dp[i-1][j-1];
+            else dp[i][j]=1+Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+          }
+        }
+        return dp[m][n];
+      }
+
+      // 모든 조합에서 최소 거리 찾기
+      for(let i=0;i<toDelete.length;i++){
+        for(let j=0;j<toAdd.length;j++){
+          const dist=editDist(toDelete[i], toAdd[j]);
+          if(dist<bestDist){
+            bestDist=dist;
+            bestDelIdx=i;
+            bestAddIdx=j;
+          }
+        }
+      }
+
+      // 거리가 가까우면 (1-2 글자 정도) 이름 변경으로 판단하고 데이터 이동
+      if(bestDist<=2 && bestDist<Infinity){
+        const oldName=toDelete[bestDelIdx];
+        const newName=toAdd[bestAddIdx];
+
+        if(CHECK[cls][oldName]){
+          CHECK[cls][newName]=CHECK[cls][oldName];
+          delete CHECK[cls][oldName];
+        }
+
+        toDelete.splice(bestDelIdx,1);
+        toAdd.splice(bestAddIdx,1);
+      } else {
+        break; // 더 이상 매칭할 것 없음
+      }
+    }
+
+    // 남은 삭제 항목들 정리
+    toDelete.forEach(name=>{ if(CHECK[cls][name]) delete CHECK[cls][name]; });
+  }
+
+  ckSave();
 }
 function seatSetSize(v){ cur().groupSize=v; seatResize(); seatSave(); seatRenderAll(); }
 function seatRenderPairs(){
@@ -693,7 +777,8 @@ function seatRandom(){
     if(!ok)continue; const v=viol(bins); if(v<bestV){bestV=v;best=bins; if(v===0)break;} }
   const seats=new Array(total).fill(null); let warn='';
   if(best){ for(let g=0;g<gc;g++)for(let p=0;p<best[g].length;p++)seats[g*gs+p]=best[g][p]; if(bestV>0) warn+='⚠️ "붙이면 안 되는" 짝 '+bestV+'쌍을 다 못 떨어뜨렸어요. '; }
-  else { const st=sShuf(students.slice()); for(let i=0;i<Math.min(total,st.length);i++)seats[i]=st[i]; ; c.seats="seats;" const extra="students.length-total;" if(extra warn+="⚠️ 규칙대로 다 넣지 못했어요. " }>0) warn='⚠️ 학생이 자리보다 '+extra+'명 많아요. '+warn; if(tooBig) warn+='⚠️ "꼭 붙여야 하는" 인원이 모둠 크기보다 많아요. ';
+  else { const st=sShuf(students.slice()); for(let i=0;i<Math.min(total,st.length);i++)seats[i]=st[i]; warn+='⚠️ 규칙대로 다 넣지 못했어요. '; }
+  c.seats=seats; const extra=students.length-total; if(extra>0) warn='⚠️ 학생이 자리보다 '+extra+'명 많아요. '+warn; if(tooBig) warn+='⚠️ "꼭 붙여야 하는" 인원이 모둠 크기보다 많아요. ';
   document.getElementById('seatWarn').textContent=warn; seatSave(); seatRenderGrid();
 }
 function seatClearAssign(){ const c=cur(); c.seats=new Array(c.groupSize*c.groupCount).fill(null); seatSel=null; document.getElementById('seatWarn').textContent=''; seatSave(); seatRenderGrid(); }
@@ -705,6 +790,16 @@ function seatRenderLayouts(){ const c=cur(); const box=document.getElementById('
 function seatLoadLayout(i){ const c=cur(); const s=(c.saved||[])[i]; if(!s)return; c.groupSize=s.groupSize; c.groupCount=s.groupCount; c.seats=(s.seats||[]).slice(); c.roleOffset=JSON.parse(JSON.stringify(s.roleOffset||{})); seatSel=null; seatSave('자리표를 불러왔어요.'); seatRenderAll(); }
 function seatDelLayout(i){ if(!confirm('이 자리표를 삭제할까요?'))return; cur().saved.splice(i,1); seatSave(); seatRenderLayouts(); }
 function seatBoardMode(on){ const pg=document.getElementById('page-seat'); pg.classList.toggle('board',on); document.getElementById('boardExit').style.display=on?'block':'none'; try{ if(on){ if(pg.requestFullscreen)pg.requestFullscreen(); } else if(document.fullscreenElement) document.exitFullscreen(); }catch(e){} window.scrollTo(0,0); }
+
+/* ===== 다른 페이지의 명단 자동 동기화 ===== */
+function syncClassRosterEverywhere(){
+  // 랜덤 뽑기 페이지 업데이트
+  if(typeof pickRenderClasses==='function') pickRenderClasses();
+  // 학생 체크 페이지 업데이트
+  if(typeof ckShow==='function' && document.getElementById('page-check').classList.contains('show')){
+    ckShow();
+  }
+}
 
 /* ================= 재료 정리 ================= */
 let MAT=[], matView='all';
@@ -751,7 +846,11 @@ function clRender(){
   ).join('') : '<div style="color:var(--muted);font-size:14px;">준비물을 추가해 보세요.</div>';
 }
 
-/* ================= 미술실 결석자 연동 ================= */
+
+/* ================= 미술실 결석자 연동 =================
+   결석자는 '날짜별'로 저장됩니다.
+   날짜가 바뀌면 전날 결석 기록은 자동으로 초기화됩니다.
+*/
 function todayKey(){
   const d=new Date();
   const y=d.getFullYear();
@@ -787,7 +886,6 @@ function seatToggleAbsent(name){
   seatRenderAll();
   if(typeof pickRenderClasses==='function') pickRenderClasses();
 }
-
 /* ================= 랜덤 뽑기 ================= */
 function pickClasses(){ if(!SEAT)seatLoad(); return Object.keys(SEAT.classes||{}); }
 function pickCurrentClass(){
@@ -915,6 +1013,7 @@ function tmrBoard(on){ const pg=document.getElementById('page-timer'); const ex=
   if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); }
   else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); }
 }
+/* 기존 이름 호환: go('timer')/bootApp() 이 timerShow를 호출 */
 function timerShow(){ tmrLoad(); tmrRenderSetup(); tmrShow(); }
 function timerBeep(){ try{ const a=new (window.AudioContext||window.webkitAudioContext)(); let t=a.currentTime;
   for(let i=0;i<3;i++){ const o=a.createOscillator(),g=a.createGain(); o.frequency.value=880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.start(t); o.stop(t+0.37); t+=0.45; }
@@ -929,18 +1028,19 @@ function backupAll(){ dl('미술교사비법책_백업.json',{ seat:lsGet('tbook
 document.getElementById('restoreAll').onchange=function(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.seat)lsSet('tbook_seat',d.seat); if(d.mat)lsSet('tbook_mat',d.mat); if(d.cl)lsSet('tbook_cl',d.cl); if(d.memo!==undefined)lsSet('tbook_memo',d.memo); if(d.plan)lsSet('tbook_plan',d.plan); if(d.classes)lsSet('tbook_classes',d.classes); alert('불러왔어요. 화면을 새로고침합니다.'); location.reload(); }catch(err){ alert('올바른 백업 파일이 아니에요.'); } }; r.readAsText(f); e.target.value=''; };
 document.getElementById('matImport').onchange=function(e){ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ try{ const d=JSON.parse(r.result); if(Array.isArray(d)){ MAT=d; matSaveLs(); matRender(); } else alert('재료 목록 파일이 아니에요.'); }catch(err){ alert('파일을 읽을 수 없어요.'); } }; r.readAsText(f); e.target.value=''; };
 
+/* seating 슬라이더/역할 입력 바인딩 */
 document.getElementById('groupCount').addEventListener('input',function(e){ cur().groupCount=+e.target.value; document.getElementById('gcVal').textContent=e.target.value; seatResize(); seatSave(); seatRenderGrid(); });
 ['A','B','C','D'].forEach(function(r){ document.getElementById('role'+r).addEventListener('input',function(){ SEAT.roles[r]=this.value; seatSave(); seatRenderGrid(); }); });
 document.addEventListener('keydown',function(e){ if(e.key==='Escape' && document.getElementById('page-seat').classList.contains('board')) seatBoardMode(false); });
 
 /* ================= 관리 대상 사이트 (artclass / funart) ================= */
 const SITES={
-  funart:{ label:'📚 funart (내 수업)', short:'funart', urlKey:'tbook_url_funart', urlDef:'[https://hongji33.github.io/funart/](https://hongji33.github.io/funart/)', lessons:true },
-  artclass:{ label:'🎨 artclass (공용)', short:'artclass', urlKey:'tbook_url_artclass', urlDef:'[https://hongji33.github.io/artclass/](https://hongji33.github.io/artclass/)', lessons:false }
+  funart:{ label:'📚 funart (내 수업)', short:'funart', urlKey:'tbook_url_funart', urlDef:'https://hongji33.github.io/funart/', lessons:true },
+  artclass:{ label:'🎨 artclass (공용)', short:'artclass', urlKey:'tbook_url_artclass', urlDef:'https://hongji33.github.io/artclass/', lessons:false }
 };
 function getTarget(){ const t=lsGet('tbook_target','funart'); return SITES[t]?t:'funart'; }
 function siteUrl(t){ t=t||getTarget(); return lsGet(SITES[t].urlKey, SITES[t].urlDef); }
-function studentUrl(){ return siteUrl(getTarget()); }
+function studentUrl(){ return siteUrl(getTarget()); } /* 호환용 */
 function setTarget(t){ if(!SITES[t])return; lsSet('tbook_target',t); atLoad(); lsLoad(); tgRender(); if(document.getElementById('page-lesson').classList.contains('show')) lsShow(); if(document.getElementById('page-artistedit').classList.contains('show')) atShow(); }
 function tgBar(id){ const t=getTarget();
   return '<div class="row" style="align-items:center; gap:8px; flex-wrap:wrap;"><b style="margin-right:2px;">관리 대상:</b>'
@@ -960,12 +1060,12 @@ function ghDate(){ try{ return new Date().toISOString().slice(0,10); }catch(e){ 
 async function ghPut(target, filename, dataObj){
   const token=ghToken(); if(!token) throw new Error('설정에서 깃허브 토큰을 먼저 넣어주세요.');
   const info=ghParse(siteUrl(target)); if(!info) throw new Error('사이트 주소에서 저장소를 알 수 없어요. 설정의 사이트 주소를 확인하세요.');
-  const api='[https://api.github.com/repos/'+info.owner+'/'+info.repo+'/contents/'+filename](https://api.github.com/repos/'+info.owner+'/'+info.repo+'/contents/'+filename);
+  const api='https://api.github.com/repos/'+info.owner+'/'+info.repo+'/contents/'+filename;
   const headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' };
   let sha; const gr=await fetch(api,{headers});
   if(gr.status===200){ const j=await gr.json(); sha=j.sha; }
   else if(gr.status===401||gr.status===403){ throw new Error('토큰이 올바르지 않거나 권한이 없어요('+gr.status+'). 설정에서 토큰과 권한을 확인하세요.'); }
-  else if(gr.status===404){ sha=undefined; }
+  else if(gr.status===404){ sha=undefined; /* 새 파일 */ }
   const body={ message: filename+' 업데이트 '+ghDate(), content: ghB64(JSON.stringify(dataObj,null,1)) };
   if(sha) body.sha=sha;
   const pr=await fetch(api,{method:'PUT',headers,body:JSON.stringify(body)});
@@ -992,7 +1092,7 @@ async function atPublish(btn){
 }
 async function ghTest(){ const m=document.getElementById('ghMsg'); m.style.color='var(--muted)'; m.textContent='확인 중...';
   const token=ghToken(); if(!token){ m.style.color='#c92a2a'; m.textContent='토큰을 먼저 넣고 저장하세요.'; return; }
-  try{ const r=await fetch('[https://api.github.com/user](https://api.github.com/user)',{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}});
+  try{ const r=await fetch('https://api.github.com/user',{headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}});
     if(r.status===200){ const j=await r.json(); m.style.color='#2b8a3e'; m.textContent='연결 성공! ('+ (j.login||'계정') +') 이제 편집기에서 🚀 한 번에 발행을 쓸 수 있어요.'; }
     else { m.style.color='#c92a2a'; m.textContent='토큰이 올바르지 않아요('+r.status+'). 다시 확인해 주세요.'; }
   }catch(e){ m.style.color='#c92a2a'; m.textContent='연결 확인 중 오류가 났어요. 인터넷/토큰을 확인해 주세요.'; }
@@ -1028,7 +1128,10 @@ function planBuild(){
   PLAN.start=document.getElementById('planStart').value;
   PLAN.weeks=Math.max(1,Math.min(30,+document.getElementById('planWeeks').value||16));
   PLAN.classes=document.getElementById('planClasses').value.split(',').map(s=>s.trim()).filter(Boolean); if(!PLAN.classes.length)PLAN.classes=['우리 반'];
-  const old=PLAN.rows||[]; PLAN.rows=[]; for(let i=0;i<PLAN.weeks;i++)PLAN.rows.push(old[i]||{lesson:'',event:false,eventName:'',done:{}}); '-'; Date(PLAN.start+'T00:00:00'); Date(d.getTime()); const d="new" d.setDate(d.getDate()+i*7); e="new" e.setDate(e.getDate()+4); f="x=" function if(!PLAN.start)return if(isNaN(d.getTime()))return planRenderTable(); planSaveLs('표를 planWeekStr(i){ } 만들었어요.');>(x.getMonth()+1)+'.'+x.getDate(); return f(d)+'~'+f(e); }
+  const old=PLAN.rows||[]; PLAN.rows=[]; for(let i=0;i<PLAN.weeks;i++)PLAN.rows.push(old[i]||{lesson:'',event:false,eventName:'',done:{}});
+  planSaveLs('표를 만들었어요.'); planRenderTable();
+}
+function planWeekStr(i){ if(!PLAN.start)return '-'; const d=new Date(PLAN.start+'T00:00:00'); if(isNaN(d.getTime()))return '-'; d.setDate(d.getDate()+i*7); const e=new Date(d.getTime()); e.setDate(e.getDate()+4); const f=x=>(x.getMonth()+1)+'.'+x.getDate(); return f(d)+'~'+f(e); }
 function planRenderTable(){
   const t=document.getElementById('planTable'); if(!t)return;
   if(!PLAN.rows.length){ t.innerHTML='<tr><td style="padding:16px;color:var(--muted);border:none;">위에서 학기 시작일·주차 수·반 목록을 정하고 \'표 만들기\'를 눌러주세요.</td></tr>'; return; }
@@ -1070,7 +1173,8 @@ function scName(i){ return SCORE.names[i]||((i+1)+'모둠'); }
 function scVal(i){ return SCORE.scores[i]||0; }
 function scRender(){ if(!SCORE)scLoad(); const g=document.getElementById('scGrid'); if(!g)return;
   const cnt=document.getElementById('scCount'); if(cnt)cnt.value=SCORE.count;
-  const cards=[]; for(let i=0;i<SCORE.count;i++){ cards.push('<div class="sc-card"><div class="sc-name">'+esc(scName(i))+'</div>'
+  const cards=[]; for(let i=0;i<SCORE.count;i++){
+    cards.push('<div class="sc-card"><div class="sc-name">'+esc(scName(i))+'</div>'
       +'<div class="sc-val">'+scVal(i)+'</div>'
       +'<div class="sc-btns"><button class="sc-minus" onclick="scAdd('+i+',-1)">－</button>'
       +'<button class="sc-plus" onclick="scAdd('+i+',1)">＋</button>'
@@ -1084,7 +1188,7 @@ function scResetScores(){ if(!confirm('모든 모둠 점수를 0으로 되돌릴
 function scRename(){ const i=prompt('이름을 바꿀 모둠 번호를 입력하세요 (1 ~ '+SCORE.count+')'); if(!i)return; const idx=parseInt(i)-1; if(isNaN(idx)||idx<0||idx>=SCORE.count){ alert('번호가 올바르지 않아요.'); return; } const nm=prompt('새 이름:', scName(idx)); if(nm===null)return; SCORE.names[idx]=nm.trim()||((idx+1)+'모둠'); scSave(); scRender(); }
 function scBoard(on){ const pg=document.getElementById('page-score'); const ex=document.getElementById('scBoardExit'); pg.classList.toggle('board',on); ex.style.display=on?'block':'none'; if(on){ if(pg.requestFullscreen)pg.requestFullscreen().catch(()=>{}); } else { if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{}); } scRender(); }
 
-/* ================= 학생 체크 (수정된 연동 로직 포함) ================= */
+/* ================= 학생 체크 ================= */
 let CHECK=null;
 function ckLoad(){ CHECK=lsGet('tbook_check',null)||{}; }
 function ckSave(){ lsSet('tbook_check',CHECK); }
@@ -1094,79 +1198,248 @@ function ckShow(){ if(!SEAT)seatLoad(); if(!CHECK)ckLoad(); const sel=document.g
   sel.innerHTML=cls.length?cls.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''):'<option value="">(반 없음)</option>';
   ckRender();
 }
-
 const CK_KINDS={
   submit:{label:'작품 제출', hint:'이름을 클릭하면 제출(✓)·미제출로 바뀌어요.', cycle:['','done'], render:v=>v==='done'?'<span class="ck-badge ck-ok">✓ 제출</span>':'<span class="ck-badge ck-no">미제출</span>'},
   assess:{label:'수행평가', hint:'클릭할 때마다 잘함(○)→보통(△)→노력요함(✗)→(없음) 순으로 바뀌어요.', cycle:['','A','B','C'], render:v=>({'A':'<span class="ck-badge ck-a">○ 잘함</span>','B':'<span class="ck-badge ck-b">△ 보통</span>','C':'<span class="ck-badge ck-c">✗ 노력요함</span>'}[v]||'<span class="ck-badge ck-no">미평가</span>')},
-  part:{label:'참여도', hint:'클릭할 때마다 별이 하나씩 늘어요(최대 5개). 활동 참여를 기록해요.', cycle:['0','1','2','3','4','5'], render:v=>'<span class="ck-badge ck-star">'+('⭐'.repeat(parseInt(v)||0)||'없음')+'</span>'}
+  part:{label:'참여도', hint:'클릭할 때마다 별이 하나씩 늘어요(최대 5개). 활동 참여를 기록해요.', cycle:['0','1','2','3','4','5'], render:v=>{ const n=parseInt(v)||0; return '<span class="ck-badge ck-star">'+('★'.repeat(n)||'☆')+'</span>'; }}
 };
-
-function ckRender(){
-  if(!SEAT) seatLoad();
-  if(!CHECK) ckLoad();
-  const cls = document.getElementById('ckClass').value;
-  const kind = document.getElementById('ckKind').value;
-  const grid = document.getElementById('ckGrid');
-  const hint = document.getElementById('ckHint');
-  if(!cls || !grid) return;
-  
-  hint.textContent = CK_KINDS[kind].hint;
-  const students = ckRoster(cls);
-  if(!students.length){
-    grid.innerHTML = '<div style="color:var(--muted);padding:10px;">학생 명단이 없습니다. 미술실 자리배치에서 명단을 먼저 저장해주세요.</div>';
-    return;
-  }
-  
-  if(!CHECK[cls]) CHECK[cls] = {};
-  
-  let html = '<div class="ck-list">';
-  students.forEach((st, idx) => {
-    /* 이름을 키로 쓰지 않고 명단의 줄 순서(idx)를 키로 사용하여 이름 수정 시에도 완벽히 연동되도록 조치 */
-    if(!CHECK[cls][idx]) CHECK[cls][idx] = {};
-    const val = CHECK[cls][idx][kind] || CK_KINDS[kind].cycle[0];
-    html += '<button class="ck-row" onclick="ckClick(\''+cls.replace(/'/g,"\\'")+'\','+idx+',\''+kind+'\')">'
-         + '<span class="ck-num">'+(idx+1)+'</span>'
-         + '<span class="ck-nm">'+esc(st)+'</span>'
-         + CK_KINDS[kind].render(val)
-         + '</button>';
-  });
-  html += '</div>';
-  grid.innerHTML = html;
+function ckGet(cls,name,kind){ return ((CHECK[cls]||{})[name]||{})[kind]||(kind==='part'?'0':''); }
+function ckSet(cls,name,kind,val){ CHECK[cls]=CHECK[cls]||{}; CHECK[cls][name]=CHECK[cls][name]||{}; CHECK[cls][name][kind]=val; ckSave(); }
+function ckCycle(cls,name,kind){ const k=CK_KINDS[kind]; const cyc=k.cycle; const cur=ckGet(cls,name,kind); let i=cyc.indexOf(cur); i=(i+1)%cyc.length; ckSet(cls,name,kind,cyc[i]); ckRender(); }
+function ckRender(){ if(!CHECK)ckLoad(); const cls=document.getElementById('ckClass').value; const kind=document.getElementById('ckKind').value; const g=document.getElementById('ckGrid'); const hint=document.getElementById('ckHint');
+  hint.textContent=CK_KINDS[kind].hint;
+  if(!cls){ g.innerHTML='<p style="color:var(--muted)">담당 반이 없어요. 설정에서 담당 반을 먼저 넣어주세요.</p>'; return; }
+  const roster=ckRoster(cls);
+  if(!roster.length){ g.innerHTML='<p style="color:var(--muted)">이 반의 명단이 없어요. 자리배치에서 「'+esc(cls)+'」 반 명단을 먼저 입력해 주세요.</p>'; return; }
+  g.innerHTML='<div class="ck-list">'+roster.map((nm,i)=>{ const v=ckGet(cls,nm,kind);
+    return '<button class="ck-row" onclick="ckCycle(\''+cls.replace(/'/g,"\\'")+'\',\''+nm.replace(/'/g,"\\'")+'\',\''+kind+'\')"><span class="ck-num">'+(i+1)+'</span><span class="ck-nm">'+esc(nm)+'</span>'+CK_KINDS[kind].render(v)+'</button>';
+  }).join('')+'</div>';
 }
+function ckClearCol(){ const cls=document.getElementById('ckClass').value; const kind=document.getElementById('ckKind').value; if(!cls)return; if(!confirm('「'+cls+'」 반의 '+CK_KINDS[kind].label+' 기록을 모두 지울까요?'))return; if(CHECK[cls]){ Object.keys(CHECK[cls]).forEach(nm=>{ if(CHECK[cls][nm])delete CHECK[cls][nm][kind]; }); ckSave(); } ckRender(); }
+function ckPrint(){ const cls=document.getElementById('ckClass').value; if(!cls){ alert('반을 먼저 선택하세요.'); return; } const roster=ckRoster(cls);
+  const rows=roster.map((nm,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(nm)+'</td><td></td><td></td><td></td></tr>').join('');
+  const w=window.open('','_blank'); w.document.write('<html><head><meta charset="utf-8"><title>'+esc(cls)+' 학생 체크</title><style>body{font-family:sans-serif;padding:24px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #999;padding:8px;text-align:center;}h2{margin:0 0 12px;}</style></head><body><h2>'+esc(cls)+' 학생 체크표</h2><table><tr><th>번호</th><th>이름</th><th>작품 제출</th><th>수행평가</th><th>참여도</th></tr>'+rows+'</table></body></html>'); w.document.close(); w.print(); }
 
-function ckClick(cls, idx, kind){
-  if(!CHECK[cls]) CHECK[cls] = {};
-  if(!CHECK[cls][idx]) CHECK[cls][idx] = {};
-  const cycle = CK_KINDS[kind].cycle;
-  const curVal = CHECK[cls][idx][kind] || cycle[0];
-  let nidx = cycle.indexOf(curVal) + 1;
-  if(nidx >= cycle.length) nidx = 0;
-  CHECK[cls][idx][kind] = cycle[nidx];
-  ckSave();
-  ckRender();
-}
-
-function ckClearCol(){
-  const cls = document.getElementById('ckClass').value;
-  const kind = document.getElementById('ckKind').value;
-  if(!cls || !confirm('현재 반의 이 항목 체크를 모두 초기화할까요?')) return;
-  if(CHECK[cls]){
-    Object.keys(CHECK[cls]).forEach(idx => {
-      if(CHECK[cls][idx]) delete CHECK[cls][idx][kind];
-    });
-  }
-  ckSave();
-  ckRender();
-}
-
-function ckPrint(){ window.print(); }
-
-/* ================= 수업/화가 편집기 마감 더미 데이터 및 빌드 누락 방지 ================= */
-let LSDATA={}, ATDATA={};
+/* ================= 수업 편집기 ================= */
+let LSDATA=null, LSEDIT=null, LSIDX=-1;
 const LS_GRADES=['중1','중2','중3'];
-function lsLoad(){} function lsShow(){} function lsRenderList(){} function lsNew(){} function lsPull(){} function lsExport(){} function lsCopyPrompt(){} function lsImportJson(){}
-function atLoad(){} function atShow(){} function atRenderList(){} function atNew(){} function atPull(){} function atExport(){}
-window.onload = function(){ bootApp(); };
+function lsLoad(){ LSDATA=lsGet('tbook_lessons_funart',null)||lsGet('tbook_lessons',null)||{'중1':[],'중2':[],'중3':[]}; LS_GRADES.forEach(g=>{ if(!Array.isArray(LSDATA[g]))LSDATA[g]=[]; }); }
+function lsSaveLs(){ lsSet('tbook_lessons_funart',LSDATA); }
+function lsGrade(){ return document.getElementById('lsGrade').value; }
+function lsMsg(t){ const m=document.getElementById('lsMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
+function lsShow(){ if(!LSDATA)lsLoad(); tgRender();
+  const isArt=(getTarget()==='artclass');
+  const ids=['lsControls','lsAiCard','lsImportCard','lsList','lsForm'];
+  const guard=document.getElementById('lsGuard');
+  if(isArt){ guard.innerHTML='<div class="card" style="background:#fff4f4; border-color:#ffd0d0;">🎨 <b>artclass(공용)</b> 사이트에는 「수업 바로가기」가 없어요. 수업은 <b>📚 funart</b>에서만 편집할 수 있어요. 위에서 <b>funart</b>를 선택하거나, 화가 편집기를 이용해 주세요.</div>';
+    ids.forEach(id=>{ const el=document.getElementById(id); if(el)el.style.display='none'; }); return; }
+  guard.innerHTML='';
+  document.getElementById('lsControls').style.display=''; document.getElementById('lsAiCard').style.display=''; document.getElementById('lsImportCard').style.display=''; document.getElementById('lsList').style.display='';
+  lsRenderList();
+}
+function lsCopyPrompt(){
+  const grade=document.getElementById('aiGrade').value;
+  const title=(document.getElementById('aiTitle').value||'').trim();
+  const unit=(document.getElementById('aiUnit').value||'').trim();
+  const kw=(document.getElementById('aiKeywords').value||'').trim();
+  if(!title){ alert('수업 제목(주제)을 먼저 넣어주세요.'); return; }
+  const secs=[...document.querySelectorAll('.aiSec:checked')].map(c=>c.value);
+  const mustLine = secs.length? ('- 반드시 넣을 섹션: '+secs.join(', ')+'\n') : '';
+  const p=
+'당신은 중학교 미술 선생님을 돕는 도우미예요. 아래 조건에 맞는 "중학교 미술 수업" 한 개를 만들어 주세요.\n\n'
++'[입력]\n'
++'- 학년: '+grade+'\n'
++'- 수업 제목(주제): '+title+'\n'
++'- 단원: '+(unit||'(자유)')+'\n'
++'- 참고 설명·키워드: '+(kw||'(없음)')+'\n'
++mustLine
++'\n[출력 규칙 — 매우 중요]\n'
++'1) 아래 JSON "형식"에 정확히 맞춰, 그 외 설명·인사말 없이 JSON만 출력하세요.\n'
++'2) 모든 내용은 한국어로, 중학생 눈높이에 맞춰 쉽고 흥미롭게 쓰세요.\n'
++'3) 문단 안에서 줄바꿈이 필요하면 \\n 을 사용하세요.\n'
++'4) sections(설명 섹션)에는 필요에 따라 "준비물", "수업 진행 과정", "유의사항", "평가·마무리" 같은 소제목을 자유롭게 넣어도 됩니다. 소제목은 원하는 만큼 늘릴 수 있어요.\n'
++'5) quiz의 ans는 정답 보기의 순서 번호예요(첫 번째=0, 두 번째=1, 세 번째=2).\n'
++'6) goals·think·viewing 은 각각 2개 정도, sections 는 4개 이상, quiz 는 2개 정도로 채워주세요.\n\n'
++'[JSON 형식]\n'
++'{\n'
++'  "unit": "단원/주제(짧게)",\n'
++'  "title": "수업 제목",\n'
++'  "intro": "이 수업에서 무엇을 하는지 1~2문장",\n'
++'  "goals": ["학습목표1", "학습목표2"],\n'
++'  "sections": [\n'
++'    {"h": "1. 소제목", "body": "설명 내용"},\n'
++'    {"h": "준비물", "body": "예: 도화지, 색연필 …"},\n'
++'    {"h": "수업 진행 과정", "body": "1) …\\n2) …\\n3) …"},\n'
++'    {"h": "유의사항", "body": "안전·주의할 점"}\n'
++'  ],\n'
++'  "activity": {"title": "오늘의 활동 제목", "desc": "학생이 할 활동 설명"},\n'
++'  "easy": "핵심을 아주 쉽게 풀어 2~3문장",\n'
++'  "think": ["생각해볼 질문1", "질문2"],\n'
++'  "viewing": ["작품 감상 질문1", "질문2"],\n'
++'  "quiz": [\n'
++'    {"q": "문제", "opts": ["보기1", "보기2", "보기3"], "ans": 0}\n'
++'  ]\n'
++'}\n\n'
++'이제 위 형식의 JSON만 출력해 주세요.';
+  const box=document.getElementById('aiPromptOut'); box.style.display='block'; box.value=p;
+  const done=(ok)=>{ const m=document.getElementById('aiPromptMsg'); m.textContent=ok?'복사했어요! AI 채팅창에 붙여넣으세요.':'복사가 안 되면 아래 칸에서 직접 복사하세요.'; setTimeout(()=>m.textContent='',5000); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(p).then(()=>done(true)).catch(()=>{ box.select(); done(false); }); }
+  else { box.select(); try{ document.execCommand('copy'); done(true); }catch(e){ done(false); } }
+}
+function lsToArr(v){ if(Array.isArray(v))return v; if(v==null)return []; return (''+v).split('\n').map(s=>s.trim()).filter(Boolean); }
+function lsField(o){ return function(){ for(let i=0;i<arguments.length;i++){ const k=arguments[i]; if(o[k]!=null && o[k]!=='') return o[k]; } return undefined; }; }
+function lsNormalize(o){ /* 여러 형식(영어·한국어 키)의 수업 하나를 표준 형식으로 */
+  if(!o||typeof o!=='object')return null;
+  const g=lsField(o);
+  const rawTitle=g('title','제목','수업제목','수업 제목','name','subject');
+  if(rawTitle==null||!(''+rawTitle).trim())return null;
+  let rawSec=g('sections','섹션','설명','설명섹션','설명 섹션','내용','본문'); if(!Array.isArray(rawSec))rawSec=[];
+  const sections=rawSec.map(x=>{ if(typeof x==='string')return {h:'',body:x}; if(x&&typeof x==='object'){ const gg=lsField(x); return {h:(gg('h','소제목','제목','title','head')||'')+'', body:(gg('body','내용','본문','text','content')||'')+''}; } return null; }).filter(x=>x&&(x.h||x.body));
+  let act=g('activity','활동','오늘의활동','오늘의 활동'); let activity={title:'',desc:''};
+  if(act&&typeof act==='object'){ const ga=lsField(act); activity={title:(ga('title','제목','name')||'')+'', desc:(ga('desc','설명','내용','description')||'')+''}; }
+  else if(typeof act==='string') activity={title:'',desc:act};
+  let rawQuiz=g('quiz','퀴즈','문제'); if(!Array.isArray(rawQuiz))rawQuiz=[];
+  const quiz=rawQuiz.map(q=>{ if(!q||typeof q!=='object')return null; const gq=lsField(q); const opts=gq('opts','보기','선택지','options')||[]; const ansv=gq('ans','정답','answer'); return {q:(gq('q','question','문제')||'')+'', opts:Array.isArray(opts)?opts:[], ans:(parseInt(ansv)||0)}; }).filter(x=>x&&x.q);
+  return { id:'l'+Date.now()+Math.floor(Math.random()*10000),
+    unit:(g('unit','단원','주제')||'')+'', title:(''+rawTitle).trim(), intro:(g('intro','소개','도입','설명글')||'')+'',
+    goals:lsToArr(g('goals','학습목표','목표')), sections:sections, activity:activity,
+    easy:(g('easy','쉬운설명','쉬운 설명','쉽게')||'')+'', think:lsToArr(g('think','생각','생각질문','생각해보기')), viewing:lsToArr(g('viewing','감상질문','감상','작품감상')), quiz:quiz };
+}
+function lsCollectRaw(obj){ /* 다양한 모양에서 수업 객체 배열 뽑기 */
+  if(Array.isArray(obj))return obj;
+  if(obj&&typeof obj==='object'){
+    const src=obj.lessons||obj.수업;
+    if(src){ if(Array.isArray(src))return src; if(typeof src==='object'){ let all=[]; ['중1','중2','중3'].forEach(k=>{ if(Array.isArray(src[k]))all=all.concat(src[k]); }); if(all.length)return all; } }
+    return [obj];
+  }
+  return [];
+}
+function lsImportJson(){
+  const raw=(document.getElementById('aiImportIn').value||'').trim(); const m=document.getElementById('aiImportMsg');
+  const fail=t=>{ m.style.color='#c92a2a'; m.textContent=t; };
+  const ok=t=>{ m.style.color='#2b8a3e'; m.textContent=t; setTimeout(()=>m.textContent='',6000); };
+  if(!raw){ fail('먼저 JSON을 붙여넣어 주세요.'); return; }
+  let txt=raw.replace(/```[a-zA-Z]*/g,'').replace(/```/g,'').trim();
+  const a=txt.indexOf('{'), aBr=txt.indexOf('['); let start=(aBr>=0&&(a<0||aBr<a))?aBr:a;
+  const b=txt.lastIndexOf('}'), bBr=txt.lastIndexOf(']'); let end=Math.max(b,bBr);
+  if(start<0||end<0){ fail('JSON을 찾지 못했어요. AI 답변의 { … } 부분을 통째로 붙여넣어 주세요.'); return; }
+  let obj; try{ obj=JSON.parse(txt.slice(start,end+1)); }catch(err){ fail('JSON 형식이 올바르지 않아요. AI에게 "설명 없이 JSON만 다시 출력해줘"라고 요청해 보세요.'); return; }
+  const rawArr=lsCollectRaw(obj); const grade=document.getElementById('aiGrade').value; let added=0, skipped=0;
+  rawArr.forEach(o=>{ const l=lsNormalize(o); if(l){ LSDATA[grade].push(l); added++; } else skipped++; });
+  if(!added){ fail('추가할 수업을 찾지 못했어요. 제목(title/제목)이 있는 JSON인지 확인하거나, AI에게 형식을 다시 지켜 달라고 해보세요.'); return; }
+  lsSaveLs(); document.getElementById('aiImportIn').value=''; document.getElementById('lsGrade').value=grade; lsRenderList();
+  ok(grade+'에 수업 '+added+'개를 추가했어요'+(skipped?(' (제목 없는 '+skipped+'개는 건너뜀)'):'')+'! 목록에서 확인하고, 다 됐으면 ② lessons.json 내보내기 하세요.');
+}
+function lsRenderList(){ const g=lsGrade(); const arr=LSDATA[g]||[]; const box=document.getElementById('lsList');
+  if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">'+g+' 수업이 아직 없어요. ＋ 새 수업으로 만들어 주세요. (처음이면 먼저 ① 불러오기를 눌러 현재 수업을 가져오세요.)</p>'; return; }
+  box.innerHTML=arr.map((l,i)=>'<div class="row" style="align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:10px 0;">'
+    +'<span style="width:22px; color:var(--muted); font-weight:700;">'+(i+1)+'</span>'
+    +'<div style="flex:1;"><b>'+esc(l.title||'(제목 없음)')+'</b> <span style="color:var(--muted); font-size:13px;">· '+esc(l.unit||'')+'</span></div>'
+    +'<button class="mini" onclick="lsEdit('+i+')">수정</button>'
+    +'<button class="mini gray" onclick="lsDel('+i+')">삭제</button></div>').join('');
+}
+function lsBlank(){ return {id:'l'+Date.now(), unit:'', title:'', intro:'', goals:[], sections:[{h:'',body:''}], activity:{title:'',desc:''}, easy:'', think:[], viewing:[], quiz:[] }; }
+function lsNew(){ LSEDIT=lsBlank(); LSIDX=-1; lsRenderForm(); }
+function lsEdit(i){ LSEDIT=JSON.parse(JSON.stringify(LSDATA[lsGrade()][i])); if(!LSEDIT.sections)LSEDIT.sections=[]; if(!LSEDIT.quiz)LSEDIT.quiz=[]; if(!LSEDIT.activity)LSEDIT.activity={title:'',desc:''}; if(!LSEDIT.goals)LSEDIT.goals=[]; if(!LSEDIT.think)LSEDIT.think=[]; if(!LSEDIT.viewing)LSEDIT.viewing=[]; LSIDX=i; lsRenderForm(); }
+function lsDel(i){ if(!confirm('이 수업을 삭제할까요?'))return; LSDATA[lsGrade()].splice(i,1); lsSaveLs(); lsRenderList(); document.getElementById('lsForm').style.display='none'; }
+function lsCancel(){ document.getElementById('lsForm').style.display='none'; LSEDIT=null; }
+function lsLines(a){ return (a||[]).join('\n'); }
+function lsAddSection(){ LSEDIT.sections.push({h:'',body:''}); lsRenderForm(); }
+function lsDelSection(i){ LSEDIT.sections.splice(i,1); lsRenderForm(); }
+function lsAddQuiz(){ LSEDIT.quiz.push({q:'',opts:['','',''],ans:0}); lsRenderForm(); }
+function lsDelQuiz(i){ LSEDIT.quiz.splice(i,1); lsRenderForm(); }
+function lsRenderForm(){ const f=document.getElementById('lsForm'); f.style.display='block'; const e=LSEDIT;
+  const secHtml=e.sections.map((s,i)=>'<div style="border:1px solid var(--line); border-radius:10px; padding:10px; margin:8px 0;">'
+    +'<div class="row" style="align-items:center;"><input class="in" placeholder="소제목 (예: 1. 현대미술이란?)" value="'+esc(s.h)+'" oninput="LSEDIT.sections['+i+'].h=this.value" style="flex:1;"><button class="mini gray" onclick="lsDelSection('+i+')">삭제</button></div>'
+    +'<textarea class="in" rows="3" placeholder="설명 내용" oninput="LSEDIT.sections['+i+'].body=this.value" style="width:100%; margin-top:6px;">'+esc(s.body)+'</textarea></div>').join('');
+  const quizHtml=e.quiz.map((q,i)=>'<div style="border:1px solid var(--line); border-radius:10px; padding:10px; margin:8px 0;">'
+    +'<div class="row" style="align-items:center;"><input class="in" placeholder="문제" value="'+esc(q.q)+'" oninput="LSEDIT.quiz['+i+'].q=this.value" style="flex:1;"><button class="mini gray" onclick="lsDelQuiz('+i+')">삭제</button></div>'
+    +'<div class="row" style="margin-top:6px; gap:6px;">'+[0,1,2].map(k=>'<input class="in" placeholder="보기 '+(k+1)+'" value="'+esc((q.opts||[])[k]||'')+'" oninput="LSEDIT.quiz['+i+'].opts['+k+']=this.value" style="flex:1;">').join('')+'</div>'
+    +'<div class="row" style="margin-top:6px; align-items:center;"><span style="font-size:13px; color:var(--muted);">정답</span> <select class="in" style="width:auto;" onchange="LSEDIT.quiz['+i+'].ans=+this.value"><option value="0"'+(q.ans===0?' selected':'')+'>보기 1</option><option value="1"'+(q.ans===1?' selected':'')+'>보기 2</option><option value="2"'+(q.ans===2?' selected':'')+'>보기 3</option></select></div></div>').join('');
+  f.innerHTML='<h3>'+(LSIDX<0?'＋ 새 수업 만들기':'수업 수정하기')+' <span style="font-size:13px; color:var(--muted);">('+lsGrade()+')</span></h3>'
+    +'<label class="lbl">제목</label><input id="lfTitle" class="in" value="'+esc(e.title)+'" oninput="LSEDIT.title=this.value" placeholder="예: 현대미술, 무엇이 달라졌을까?">'
+    +'<label class="lbl">단원(주제)</label><input class="in" value="'+esc(e.unit)+'" oninput="LSEDIT.unit=this.value" placeholder="예: 현대미술">'
+    +'<label class="lbl">수업 소개</label><textarea class="in" rows="2" oninput="LSEDIT.intro=this.value" placeholder="이 수업에서 무엇을 하는지 한두 문장" style="width:100%;">'+esc(e.intro)+'</textarea>'
+    +'<label class="lbl">학습 목표 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.goals=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.goals))+'</textarea>'
+    +'<label class="lbl">설명 섹션</label>'+secHtml+'<button class="mini" onclick="lsAddSection()">＋ 섹션 추가</button>'
+    +'<label class="lbl" style="margin-top:14px;">🌟 오늘의 활동 — 제목</label><input class="in" value="'+esc(e.activity.title)+'" oninput="LSEDIT.activity.title=this.value" placeholder="예: 나만의 현대미술 작품 아이디어 만들기">'
+    +'<label class="lbl">오늘의 활동 — 설명</label><textarea class="in" rows="2" oninput="LSEDIT.activity.desc=this.value" style="width:100%;">'+esc(e.activity.desc)+'</textarea>'
+    +'<label class="lbl">쉬운 설명 (AI 선생님 "쉽게 설명")</label><textarea class="in" rows="2" oninput="LSEDIT.easy=this.value" style="width:100%;">'+esc(e.easy)+'</textarea>'
+    +'<label class="lbl">생각 질문 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.think=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.think))+'</textarea>'
+    +'<label class="lbl">감상 질문 (한 줄에 하나)</label><textarea class="in" rows="2" oninput="LSEDIT.viewing=this.value.split(\'\\n\').map(s=>s.trim()).filter(Boolean)" style="width:100%;">'+esc(lsLines(e.viewing))+'</textarea>'
+    +'<label class="lbl">퀴즈</label>'+quizHtml+'<button class="mini" onclick="lsAddQuiz()">＋ 퀴즈 추가</button>'
+    +'<div class="row" style="margin-top:16px;"><button class="btn" onclick="lsFormSave()">💾 저장</button><button class="btn ghost" onclick="lsCancel()">취소</button></div>';
+}
+function lsFormSave(){ if(!LSEDIT.title.trim()){ alert('제목을 입력해 주세요.'); return; }
+  LSEDIT.sections=(LSEDIT.sections||[]).filter(s=>(s.h&&s.h.trim())||(s.body&&s.body.trim()));
+  LSEDIT.quiz=(LSEDIT.quiz||[]).filter(q=>q.q&&q.q.trim());
+  const g=lsGrade(); if(LSIDX<0) LSDATA[g].push(LSEDIT); else LSDATA[g][LSIDX]=LSEDIT;
+  lsSaveLs(); document.getElementById('lsForm').style.display='none'; LSEDIT=null; lsRenderList(); lsMsg('저장했어요. 다 됐으면 ② lessons.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
+}
+function lsPull(){ const base=(siteUrl('funart')||'').replace(/\/?$/,'/'); lsMsg('funart에서 불러오는 중...');
+  fetch(base+'lessons.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.lessons||d; let n=0; LS_GRADES.forEach(g=>{ if(Array.isArray(src[g])){ LSDATA[g]=src[g]; n+=src[g].length; } }); lsSaveLs(); lsRenderList(); lsMsg('현재 funart 사이트 수업 '+n+'개를 불러왔어요.'); })
+  .catch(()=>lsMsg('불러오지 못했어요. 아직 lessons.json이 funart 저장소에 없을 수 있어요. 그럴 땐 새 수업부터 만들면 돼요. (사이트 주소는 설정에서 바꿀 수 있어요.)')); }
+function lsExport(){ const total=LS_GRADES.reduce((n,g)=>n+((LSDATA[g]||[]).length),0);
+  if(total===0){ if(!confirm('지금 수업이 0개예요. 이 파일을 funart에 올리면 funart의 기존 수업이 모두 사라져요. 그래도 내보낼까요?\n\n(먼저 ① 불러오기로 기존 수업을 가져오거나, 수업을 추가한 뒤 내보내는 걸 권해요.)')) { lsMsg('내보내기를 취소했어요.'); return; } }
+  dl('lessons.json',{ updated:'선생님 편집', lessons:LSDATA }); lsMsg('lessons.json 파일을 받았어요(수업 '+total+'개). 이 파일을 funart 저장소에 그대로 올리면 funart 학생 화면에 반영돼요.'); }
+
+/* ================= 화가 편집기 ================= */
+let ATDATA=null, ATEDIT=null, ATIDX=-1;
+const AT_CATS=['world','korea','design'];
+function atKey(){ return 'tbook_artists_'+getTarget(); }
+function atLoad(){ ATDATA=lsGet(atKey(),null)||(getTarget()==='funart'?lsGet('tbook_artists',null):null)||{world:[],korea:[],design:[]}; AT_CATS.forEach(c=>{ if(!Array.isArray(ATDATA[c]))ATDATA[c]=[]; }); }
+function atSaveLs(){ lsSet(atKey(),ATDATA); }
+function atCat(){ return document.getElementById('atCat').value; }
+function atMsg(t){ const m=document.getElementById('atMsg'); if(m){ m.textContent=t; if(t)setTimeout(()=>{ if(m.textContent===t)m.textContent=''; },4000);} }
+function atShow(){ tgRender(); atLoad(); atRenderList(); }
+function atRenderList(){ const c=atCat(); const arr=ATDATA[c]||[]; const box=document.getElementById('atList');
+  if(!arr.length){ box.innerHTML='<p style="color:var(--muted)">이 분류에 인물이 아직 없어요. ＋ 새 화가로 추가하거나 먼저 ① 불러오기를 눌러 주세요.</p>'; return; }
+  box.innerHTML=arr.map((a,i)=>'<div class="row" style="align-items:center; gap:10px; border-bottom:1px solid var(--line); padding:10px 0;">'
+    +'<div style="width:40px; height:40px; border-radius:8px; background:'+(a.thumb||'#ddd')+'; overflow:hidden; flex:none;">'+(a.img?'<img src="'+esc(a.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':'')+'</div>'
+    +'<div style="flex:1;"><b>'+esc(a.name||'(이름 없음)')+'</b> <span style="color:var(--muted); font-size:13px;">· '+esc(a.tag||'')+'</span></div>'
+    +'<button class="mini" onclick="atEdit('+i+')">수정</button>'
+    +'<button class="mini gray" onclick="atDel('+i+')">삭제</button></div>').join('');
+}
+function atBlank(){ return {id:'a'+Date.now(), name:'', tag:'', work:'', img:'', thumb:'linear-gradient(160deg,#c3b3f0,#8f7fe0)', desc:''}; }
+function atNew(){ ATEDIT=atBlank(); ATIDX=-1; atRenderForm(); }
+function atEdit(i){ ATEDIT=JSON.parse(JSON.stringify(ATDATA[atCat()][i])); ATIDX=i; atRenderForm(); }
+function atDel(i){ if(!confirm('이 인물을 삭제할까요?'))return; ATDATA[atCat()].splice(i,1); atSaveLs(); atRenderList(); document.getElementById('atForm').style.display='none'; }
+function atCancel(){ document.getElementById('atForm').style.display='none'; ATEDIT=null; }
+function atRenderForm(){ const f=document.getElementById('atForm'); f.style.display='block'; const e=ATEDIT;
+  f.innerHTML='<h3>'+(ATIDX<0?'＋ 새 화가 추가':'화가 수정하기')+'</h3>'
+    +'<label class="lbl">이름</label><input class="in" value="'+esc(e.name)+'" oninput="ATEDIT.name=this.value" placeholder="예: 빈센트 반 고흐">'
+    +'<label class="lbl">분류 표시(태그)</label><input class="in" value="'+esc(e.tag)+'" oninput="ATEDIT.tag=this.value" placeholder="예: 후기인상주의">'
+    +'<label class="lbl">대표작</label><input class="in" value="'+esc(e.work)+'" oninput="ATEDIT.work=this.value" placeholder="예: 대표작: 〈별이 빛나는 밤〉">'
+    +'<label class="lbl">이미지 주소(URL) — 비워두면 배경색만 보여요</label><input class="in" value="'+esc(e.img)+'" oninput="ATEDIT.img=this.value; atPrev();" placeholder="https://...">'
+    +'<label class="lbl">배경색(이미지 없을 때) — 색 이름이나 그라데이션</label><input class="in" value="'+esc(e.thumb)+'" oninput="ATEDIT.thumb=this.value; atPrev();" placeholder="예: linear-gradient(160deg,#c3b3f0,#8f7fe0)">'
+    +'<label class="lbl">설명</label><textarea class="in" rows="3" oninput="ATEDIT.desc=this.value" style="width:100%;" placeholder="학생에게 보여줄 소개글">'+esc(e.desc)+'</textarea>'
+    +'<label class="lbl">미리보기</label><div class="row" style="align-items:center; gap:10px;"><div id="atPrevBox" style="width:70px; height:70px; border-radius:12px; background:'+(e.thumb||'#ddd')+'; overflow:hidden;">'+(e.img?'<img src="'+esc(e.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':'')+'</div></div>'
+    +'<div class="row" style="margin-top:16px;"><button class="btn" onclick="atFormSave()">💾 저장</button><button class="btn ghost" onclick="atCancel()">취소</button></div>';
+}
+function atPrev(){ const b=document.getElementById('atPrevBox'); if(!b)return; b.style.background=ATEDIT.thumb||'#ddd'; b.innerHTML=ATEDIT.img?'<img src="'+esc(ATEDIT.img)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.remove()">':''; }
+function atFormSave(){ if(!ATEDIT.name.trim()){ alert('이름을 입력해 주세요.'); return; } if(!ATEDIT.thumb.trim())ATEDIT.thumb='linear-gradient(160deg,#c3b3f0,#8f7fe0)'; if(!ATEDIT.desc.trim())ATEDIT.desc=ATEDIT.name;
+  const c=atCat(); if(ATIDX<0) ATDATA[c].push(ATEDIT); else ATDATA[c][ATIDX]=ATEDIT;
+  atSaveLs(); document.getElementById('atForm').style.display='none'; ATEDIT=null; atRenderList(); atMsg('저장했어요. 다 됐으면 ② artists.json 내보내기로 파일을 받아 학생 저장소에 올려주세요.');
+}
+function atPull(){ const s=SITES[getTarget()].short; const base=(siteUrl(getTarget())||'').replace(/\/?$/,'/'); atMsg(s+'에서 불러오는 중...');
+  fetch(base+'artists.json',{cache:'no-store'}).then(r=>{ if(!r.ok)throw 0; return r.json(); }).then(d=>{ const src=d.artists||d; let n=0; AT_CATS.forEach(c=>{ if(Array.isArray(src[c])){ ATDATA[c]=src[c]; n+=src[c].length; } }); atSaveLs(); atRenderList(); atMsg('현재 '+s+' 사이트 화가 '+n+'명을 불러왔어요.'); })
+  .catch(()=>atMsg('불러오지 못했어요. 아직 artists.json이 '+s+' 저장소에 없을 수 있어요. 그럴 땐 새 화가부터 추가하면 돼요.')); }
+function atExport(){ const s=SITES[getTarget()].short; dl('artists.json',{ updated:'선생님 편집', artists:ATDATA }); atMsg('artists.json 파일을 받았어요. 이 파일을 '+s+' 저장소에 그대로 올리면 '+s+' 학생 화면에 반영돼요.'); }
 </script>
 </body>
 </html>
+
+<script>
+document.addEventListener('classRosterUpdated',function(){
+  if(typeof pickRenderClasses==='function') pickRenderClasses();
+});
+</script>
+
+<script>
+function autoSyncClassRoster(){
+  if(typeof syncClassRosterEverywhere==='function') syncClassRosterEverywhere();
+}
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden) autoSyncClassRoster();
+});
+</script>
