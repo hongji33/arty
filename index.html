@@ -1128,29 +1128,42 @@ function planBuild(){
   PLAN.start=document.getElementById('planStart').value;
   PLAN.weeks=Math.max(1,Math.min(30,+document.getElementById('planWeeks').value||16));
   PLAN.classes=document.getElementById('planClasses').value.split(',').map(s=>s.trim()).filter(Boolean); if(!PLAN.classes.length)PLAN.classes=['우리 반'];
-  const old=PLAN.rows||[]; PLAN.rows=[]; for(let i=0;i<PLAN.weeks;i++)PLAN.rows.push(old[i]||{lesson:'',event:false,eventName:'',done:{}});
+  const old=PLAN.rows||[]; PLAN.rows=[]; for(let i=0;i<PLAN.weeks;i++)PLAN.rows.push(old[i]||{lesson1:'',lesson2:'',event:false,eventName:'',done1:{},done2:{}});
   planSaveLs('표를 만들었어요.'); planRenderTable();
 }
 function planWeekStr(i){ if(!PLAN.start)return '-'; const d=new Date(PLAN.start+'T00:00:00'); if(isNaN(d.getTime()))return '-'; d.setDate(d.getDate()+i*7); const e=new Date(d.getTime()); e.setDate(e.getDate()+4); const f=x=>(x.getMonth()+1)+'.'+x.getDate(); return f(d)+'~'+f(e); }
 function planRenderTable(){
   const t=document.getElementById('planTable'); if(!t)return;
   if(!PLAN.rows.length){ t.innerHTML='<tr><td style="padding:16px;color:var(--muted);border:none;">위에서 학기 시작일·주차 수·반 목록을 정하고 \'표 만들기\'를 눌러주세요.</td></tr>'; return; }
-  let html='<tr><th class="wk">주차</th><th class="dt">날짜</th><th>수업 내용</th><th style="width:190px;">반별 완료 / 행사</th></tr>';
+  let html='<tr><th class="wk">주차</th><th class="dt">날짜</th><th colspan="2">수업 내용 (1차시 / 2차시)</th><th colspan="2">반별 완료 (1차시 / 2차시)</th><th>행사</th></tr>';
   html+=PLAN.rows.map((r,i)=>{
-    const lc = r.event
-      ? '<input class="in" style="width:100%;" placeholder="행사 이름 (예: 중간고사, 체험학습)" value="'+esc(r.eventName||'')+'" oninput="planSetEvent('+i+',this.value)">'
-      : '<textarea oninput="planSetLesson('+i+',this.value)" placeholder="이 주 수업 내용">'+esc(r.lesson||'')+'</textarea>';
-    const dc = r.event
-      ? '<span style="color:#a00;font-weight:700;font-size:12.5px;">행사 주간 (수업 없음)</span>'
-      : '<div class="donerow">'+(PLAN.classes||[]).map(c=>'<span class="donechk'+(r.done&&r.done[c]?' on':'')+'" onclick="planToggleDone('+i+',\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+(r.done&&r.done[c]?' ✓':'')+'</span>').join('')+'</div>';
-    return '<tr class="'+(r.event?'event':'')+'"><td class="wk">'+(i+1)+'주</td><td class="dt">'+planWeekStr(i)+'</td><td>'+lc+'</td>'+
-      '<td>'+dc+'<div style="margin-top:8px;"><label style="font-size:12px;font-weight:700;cursor:pointer;"><input type="checkbox" '+(r.event?'checked':'')+' onchange="planToggleEvent('+i+')"> 행사(수업 없음)</label></div></td></tr>';
+    if(r.event){
+      return '<tr class="event"><td class="wk">'+(i+1)+'주</td><td class="dt">'+planWeekStr(i)+'</td>'+
+        '<td colspan="4"><input class="in" style="width:100%;" placeholder="행사 이름 (예: 중간고사, 체험학습)" value="'+esc(r.eventName||'')+'" oninput="planSetEvent('+i+',this.value)"></td>'+
+        '<td style="text-align:center;"><label style="font-size:12px;font-weight:700;cursor:pointer;"><input type="checkbox" checked onchange="planToggleEvent('+i+')"> 행사</label></td></tr>';
+    }
+    // 1차시 수업 내용
+    const lc1='<textarea oninput="planSetLesson('+i+',1,this.value)" placeholder="1차시">'+esc(r.lesson1||'')+'</textarea>';
+    // 2차시 수업 내용
+    const lc2='<textarea oninput="planSetLesson('+i+',2,this.value)" placeholder="2차시">'+esc(r.lesson2||'')+'</textarea>';
+    // 1차시 반별 완료
+    const dc1='<div class="donerow">'+(PLAN.classes||[]).map(c=>'<span class="donechk'+(r.done1&&r.done1[c]?' on':'')+'" onclick="planToggleDone('+i+',1,\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+'</span>').join('')+'</div>';
+    // 2차시 반별 완료
+    const dc2='<div class="donerow">'+(PLAN.classes||[]).map(c=>'<span class="donechk'+(r.done2&&r.done2[c]?' on':'')+'" onclick="planToggleDone('+i+',2,\''+c.replace(/'/g,"\\'")+'\')">'+esc(c)+'</span>').join('')+'</div>';
+
+    return '<tr><td class="wk" rowspan="2" style="vertical-align:middle;">'+(i+1)+'주</td><td class="dt" rowspan="2" style="vertical-align:middle;">'+planWeekStr(i)+'</td>'+
+      '<td style="padding:8px; border-right:1px solid var(--line);"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">1차시</div>'+lc1+'</td>'+
+      '<td style="padding:8px;"><div style="font-size:11px;color:var(--muted);margin-bottom:4px;">2차시</div>'+lc2+'</td>'+
+      '<td style="padding:8px; border-right:1px solid var(--line);">'+dc1+'</td>'+
+      '<td style="padding:8px;">'+dc2+'</td>'+
+      '<td style="text-align:center; vertical-align:middle; white-space:nowrap;" rowspan="2"><label style="font-size:12px;font-weight:700;cursor:pointer;"><input type="checkbox" '+(r.event?'checked':'')+' onchange="planToggleEvent('+i+')"> 행사</label></td></tr>'+
+      '<tr style="border-bottom:2px solid var(--line);"></tr>';
   }).join('');
   t.innerHTML=html;
 }
-function planSetLesson(i,v){ PLAN.rows[i].lesson=v; planSaveLs(); }
+function planSetLesson(i,session,v){ if(session===1){ PLAN.rows[i].lesson1=v; } else { PLAN.rows[i].lesson2=v; } planSaveLs(); }
 function planSetEvent(i,v){ PLAN.rows[i].eventName=v; planSaveLs(); }
-function planToggleDone(i,c){ const r=PLAN.rows[i]; r.done=r.done||{}; r.done[c]=!r.done[c]; planSaveLs(); planRenderTable(); }
+function planToggleDone(i,session,c){ const r=PLAN.rows[i]; const doneKey='done'+session; r[doneKey]=r[doneKey]||{}; r[doneKey][c]=!r[doneKey][c]; planSaveLs(); planRenderTable(); }
 function planToggleEvent(i){ PLAN.rows[i].event=!PLAN.rows[i].event; planSaveLs(); planRenderTable(); }
 function planPrint(){ window.print(); }
 
